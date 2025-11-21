@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,22 +7,44 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Trophy, Mail, Lock, User, Phone } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  
+  const { user, signIn, signUp, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Login logic will be implemented later
-    setTimeout(() => setIsLoading(false), 1000);
+    await signIn(loginEmail, loginPassword);
+    setIsLoading(false);
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Signup logic will be implemented later
-    setTimeout(() => setIsLoading(false), 1000);
+    await signUp(signupEmail, signupPassword);
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    await signInWithGoogle();
+    setIsLoading(false);
   };
 
   return (
@@ -57,6 +80,8 @@ const Auth = () => {
                       type="email"
                       placeholder="your@email.com"
                       className="pl-10 glass border-border"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
                       required
                     />
                   </div>
@@ -71,6 +96,8 @@ const Auth = () => {
                       type="password"
                       placeholder="••••••••"
                       className="pl-10 glass border-border"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                       required
                     />
                   </div>
@@ -94,7 +121,12 @@ const Auth = () => {
                 <p className="text-center text-sm text-muted-foreground mb-4">
                   Or continue with
                 </p>
-                <Button variant="outline" className="w-full glass border-border">
+                <Button 
+                  variant="outline" 
+                  className="w-full glass border-border"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
@@ -130,6 +162,8 @@ const Auth = () => {
                       type="text"
                       placeholder="ProGamer123"
                       className="pl-10 glass border-border"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       required
                     />
                   </div>
@@ -144,6 +178,8 @@ const Auth = () => {
                       type="email"
                       placeholder="your@email.com"
                       className="pl-10 glass border-border"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
                       required
                     />
                   </div>
@@ -158,6 +194,8 @@ const Auth = () => {
                       type="tel"
                       placeholder="+91 98765 43210"
                       className="pl-10 glass border-border"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       required
                     />
                   </div>
@@ -172,6 +210,8 @@ const Auth = () => {
                       type="password"
                       placeholder="••••••••"
                       className="pl-10 glass border-border"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
                       required
                     />
                   </div>
@@ -191,7 +231,12 @@ const Auth = () => {
                 <p className="text-center text-sm text-muted-foreground mb-4">
                   Or sign up with
                 </p>
-                <Button variant="outline" className="w-full glass border-border">
+                <Button 
+                  variant="outline" 
+                  className="w-full glass border-border"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
