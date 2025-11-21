@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          game_type: string | null
+          game_uid: string | null
+          id: string
+          mobile_number: string | null
+          updated_at: string | null
+          username: string
+          wallet_balance: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          game_type?: string | null
+          game_uid?: string | null
+          id: string
+          mobile_number?: string | null
+          updated_at?: string | null
+          username: string
+          wallet_balance?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          game_type?: string | null
+          game_uid?: string | null
+          id?: string
+          mobile_number?: string | null
+          updated_at?: string | null
+          username?: string
+          wallet_balance?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
