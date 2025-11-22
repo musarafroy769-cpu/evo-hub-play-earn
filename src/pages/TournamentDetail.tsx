@@ -4,11 +4,130 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Users, Clock, Trophy, Calendar, MapPin, Shield } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import ffTournament from "@/assets/ff-tournament.jpg";
 
 const TournamentDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isJoining, setIsJoining] = useState(false);
+  const [hasJoined, setHasJoined] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  useEffect(() => {
+    if (user && id) {
+      checkIfJoined();
+      fetchWalletBalance();
+    }
+  }, [user, id]);
+
+  const checkIfJoined = async () => {
+    if (!user || !id) return;
+
+    const { data } = await supabase
+      .from('tournament_participants')
+      .select('*')
+      .eq('tournament_id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    setHasJoined(!!data);
+  };
+
+  const fetchWalletBalance = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('wallet_balance')
+      .eq('id', user.id)
+      .single();
+
+    if (data) {
+      setWalletBalance(Number(data.wallet_balance) || 0);
+    }
+  };
+
+  const handleJoinTournament = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to join tournaments",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    const entryFee = parseFloat(tournament.entry.replace(/[^0-9.-]+/g, "")) || 0;
+
+    if (entryFee > 0 && walletBalance < entryFee) {
+      toast({
+        title: "Insufficient Balance",
+        description: "You don't have enough balance to join this tournament",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsJoining(true);
+
+    // Deduct entry fee if applicable
+    if (entryFee > 0) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ wallet_balance: walletBalance - entryFee })
+        .eq('id', user.id);
+
+      if (updateError) {
+        toast({
+          title: "Error",
+          description: "Failed to process entry fee",
+          variant: "destructive",
+        });
+        setIsJoining(false);
+        return;
+      }
+    }
+
+    // Join tournament
+    const { error } = await supabase
+      .from('tournament_participants')
+      .insert({
+        tournament_id: id,
+        user_id: user.id,
+      });
+
+    setIsJoining(false);
+
+    if (error) {
+      // Refund if join failed
+      if (entryFee > 0) {
+        await supabase
+          .from('profiles')
+          .update({ wallet_balance: walletBalance })
+          .eq('id', user.id);
+      }
+      
+      toast({
+        title: "Error",
+        description: error.message.includes('duplicate') ? "You've already joined this tournament" : "Failed to join tournament",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success!",
+        description: "You've successfully joined the tournament",
+      });
+      setHasJoined(true);
+      fetchWalletBalance();
+    }
+  };
 
   const tournament = {
     id: 1,
@@ -171,8 +290,12 @@ const TournamentDetail = () => {
 
           {/* Join Button */}
           <div className="sticky bottom-20 pt-4 bg-gradient-to-t from-background via-background to-transparent">
-            <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all py-6 text-lg">
-              Join Tournament for {tournament.entry}
+            <Button 
+              className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all py-6 text-lg"
+              onClick={handleJoinTournament}
+              disabled={isJoining || hasJoined}
+            >
+              {hasJoined ? "Already Joined" : isJoining ? "Joining..." : `Join Tournament for ${tournament.entry}`}
             </Button>
           </div>
         </div>
