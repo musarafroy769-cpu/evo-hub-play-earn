@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Trophy, Mail, Lock, User, Phone } from "lucide-react";
+import { Trophy, Mail, Lock, User, Phone, Gamepad2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
@@ -17,6 +18,8 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
+  const [gameUid, setGameUid] = useState("");
+  const [gameType, setGameType] = useState<string>("");
   
   const { user, signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -36,8 +39,11 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!gameType) {
+      return;
+    }
     setIsLoading(true);
-    await signUp(signupEmail, signupPassword);
+    await signUp(signupEmail, signupPassword, username, phone, gameUid, gameType);
     setIsLoading(false);
   };
 
@@ -158,6 +164,35 @@ const Auth = () => {
                       className="pl-10 glass border-border"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="game-type">Select Game</Label>
+                  <Select value={gameType} onValueChange={setGameType} required>
+                    <SelectTrigger className="glass border-border">
+                      <SelectValue placeholder="Choose your game" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FF">Free Fire (FF)</SelectItem>
+                      <SelectItem value="BGMI">BGMI</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="game-uid">Game UID</Label>
+                  <div className="relative">
+                    <Gamepad2 className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="game-uid"
+                      type="text"
+                      placeholder="Enter your game UID"
+                      className="pl-10 glass border-border"
+                      value={gameUid}
+                      onChange={(e) => setGameUid(e.target.value)}
                       required
                     />
                   </div>
