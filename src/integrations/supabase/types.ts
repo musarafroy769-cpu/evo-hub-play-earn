@@ -50,6 +50,83 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_participants: {
+        Row: {
+          id: string
+          joined_at: string | null
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string | null
+          entry_fee: number
+          filled_slots: number
+          game_type: string
+          id: string
+          image_url: string | null
+          mode: string
+          prize_pool: number
+          scheduled_at: string
+          status: string
+          title: string
+          total_slots: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entry_fee?: number
+          filled_slots?: number
+          game_type: string
+          id?: string
+          image_url?: string | null
+          mode: string
+          prize_pool: number
+          scheduled_at: string
+          status?: string
+          title: string
+          total_slots: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entry_fee?: number
+          filled_slots?: number
+          game_type?: string
+          id?: string
+          image_url?: string | null
+          mode?: string
+          prize_pool?: number
+          scheduled_at?: string
+          status?: string
+          title?: string
+          total_slots?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -67,6 +144,42 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string | null
+          id: string
+          status: string
+          transaction_id: string | null
+          updated_at: string | null
+          upi_id: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string | null
+          id?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string | null
+          upi_id: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string | null
+          id?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string | null
+          upi_id?: string
           user_id?: string
         }
         Relationships: []

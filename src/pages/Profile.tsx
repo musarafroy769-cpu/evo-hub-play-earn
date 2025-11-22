@@ -12,9 +12,18 @@ import {
   ChevronRight,
   CreditCard
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Profile = () => {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   const user = {
     username: "ProGamer123",
     email: "progamer@example.com",
@@ -135,10 +144,12 @@ const Profile = () => {
             </div>
             <Wallet className="w-12 h-12 text-primary/30" />
           </div>
-          <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
-            <CreditCard className="w-4 h-4 mr-2" />
-            Withdraw Money
-          </Button>
+          <Link to="/withdrawal">
+            <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Withdraw Money
+            </Button>
+          </Link>
         </Card>
 
         {/* Menu Options */}
@@ -153,6 +164,7 @@ const Profile = () => {
         <Button 
           variant="outline" 
           className="w-full glass border-destructive/30 text-destructive hover:bg-destructive/10"
+          onClick={handleLogout}
         >
           <LogOut className="w-4 h-4 mr-2" />
           Logout
