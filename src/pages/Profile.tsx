@@ -27,31 +27,43 @@ const Profile = () => {
 
   useEffect(() => {
     if (authUser) {
-      checkAdminRole();
-      fetchProfile();
+      Promise.all([checkAdminRole(), fetchProfile()]).catch(console.error);
+    } else {
+      setLoading(false);
     }
   }, [authUser]);
 
   const checkAdminRole = async () => {
     if (!authUser) return;
-    const { data } = await supabase
-      .rpc('has_role', { _user_id: authUser.id, _role: 'admin' });
-    setIsAdmin(!!data);
+    try {
+      const { data } = await supabase
+        .rpc('has_role', { _user_id: authUser.id, _role: 'admin' });
+      setIsAdmin(!!data);
+    } catch (error) {
+      console.error('Error checking admin role:', error);
+    }
   };
 
   const fetchProfile = async () => {
     if (!authUser) return;
     
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle();
 
-    if (!error && data) {
-      setProfile(data);
+      if (!error && data) {
+        setProfile(data);
+      } else if (error) {
+        console.error('Error fetching profile:', error);
+      }
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -61,7 +73,8 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         <p className="text-muted-foreground">Loading profile...</p>
       </div>
     );
