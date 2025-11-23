@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users } from "lucide-react";
+import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users, QrCode, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -79,18 +82,8 @@ const Admin = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      checkAdminRole();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchData();
-    }
-  }, [isAdmin]);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [uploadingQr, setUploadingQr] = useState(false);
 
   const checkAdminRole = async () => {
     if (!user) return;
@@ -233,9 +226,83 @@ const Admin = () => {
     }
   }, [toast]);
 
+  const fetchQrCode = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'deposit_qr_code')
+        .maybeSingle();
+
+      if (!error && data) {
+        setQrCodeUrl(data.setting_value);
+      }
+    } catch (error) {
+      console.error('Error fetching QR code:', error);
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
-    await Promise.all([fetchWithdrawalRequests(), fetchDepositRequests(), fetchTournaments(), fetchUsers()]);
-  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchTournaments, fetchUsers]);
+    await Promise.all([
+      fetchWithdrawalRequests(), 
+      fetchDepositRequests(), 
+      fetchTournaments(), 
+      fetchUsers(), 
+      fetchQrCode()
+    ]);
+  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchTournaments, fetchUsers, fetchQrCode]);
+
+  const handleQrCodeUpdate = async () => {
+    if (!qrCodeUrl.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a QR code URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingQr(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          setting_key: 'deposit_qr_code',
+          setting_value: qrCodeUrl,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'setting_key'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "QR code updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating QR code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update QR code",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingQr(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      checkAdminRole();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchData();
+    }
+  }, [isAdmin, fetchData]);
 
   if (isLoading) {
     return (
@@ -289,6 +356,10 @@ const Admin = () => {
               <Users className="w-4 h-4" />
               User Management
             </TabsTrigger>
+            <TabsTrigger value="qr-code" className="gap-2">
+              <QrCode className="w-4 h-4" />
+              QR Code
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="deposits">
@@ -317,6 +388,55 @@ const Admin = () => {
               users={users}
               onRefresh={fetchUsers}
             />
+          </TabsContent>
+
+          <TabsContent value="qr-code">
+            <Card className="glass border-border p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <QrCode className="w-6 h-6 text-primary" />
+                <h2 className="text-xl font-bold">Deposit QR Code</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="qr-url">QR Code Image URL</Label>
+                  <Input
+                    id="qr-url"
+                    type="url"
+                    placeholder="https://example.com/qr-code.png"
+                    value={qrCodeUrl}
+                    onChange={(e) => setQrCodeUrl(e.target.value)}
+                    className="glass mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload your QR code image to a hosting service and paste the URL here
+                  </p>
+                </div>
+
+                {qrCodeUrl && (
+                  <div className="border border-border rounded-lg p-4 glass">
+                    <p className="text-sm text-muted-foreground mb-2">Preview:</p>
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="QR Code Preview" 
+                      className="max-w-xs mx-auto rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleQrCodeUpdate}
+                  disabled={uploadingQr}
+                  className="w-full"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploadingQr ? "Updating..." : "Update QR Code"}
+                </Button>
+              </div>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
