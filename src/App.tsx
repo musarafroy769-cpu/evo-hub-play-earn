@@ -11,6 +11,8 @@ import TournamentDetail from "./pages/TournamentDetail";
 import History from "./pages/History";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
+import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Withdrawal from "./pages/Withdrawal";
 import Admin from "./pages/Admin";
@@ -32,6 +34,8 @@ const App = () => (
           <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
+          <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/withdrawal" element={<ProtectedRoute><Layout><Withdrawal /></Layout></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
