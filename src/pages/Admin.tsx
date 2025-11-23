@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -122,11 +122,7 @@ const Admin = () => {
     }
   };
 
-  const fetchData = async () => {
-    await Promise.all([fetchWithdrawalRequests(), fetchDepositRequests(), fetchTournaments(), fetchUsers()]);
-  };
-
-  const fetchWithdrawalRequests = async () => {
+  const fetchWithdrawalRequests = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('withdrawal_requests')
@@ -134,29 +130,21 @@ const Admin = () => {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        const requestsWithProfiles = await Promise.all(
-          data.map(async (request) => {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('id', request.user_id)
-                .maybeSingle();
-              
-              return {
-                ...request,
-                profiles: profile || { username: 'Unknown' }
-              };
-            } catch (err) {
-              console.error('Error fetching profile for user:', request.user_id, err);
-              return {
-                ...request,
-                profiles: { username: 'Unknown' }
-              };
-            }
-          })
-        );
-        setWithdrawalRequests(requestsWithProfiles);
+        // Get unique user IDs
+        const userIds = [...new Set(data.map(r => r.user_id))];
+        
+        // Fetch all profiles in one query
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        
+        setWithdrawalRequests(data.map(request => ({
+          ...request,
+          profiles: profileMap.get(request.user_id) || { username: 'Unknown' }
+        })));
       }
     } catch (error) {
       console.error('Error fetching withdrawal requests:', error);
@@ -166,9 +154,9 @@ const Admin = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const fetchDepositRequests = async () => {
+  const fetchDepositRequests = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('deposit_requests')
@@ -176,29 +164,21 @@ const Admin = () => {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        const requestsWithProfiles = await Promise.all(
-          data.map(async (request) => {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('id', request.user_id)
-                .maybeSingle();
-              
-              return {
-                ...request,
-                profiles: profile || { username: 'Unknown' }
-              };
-            } catch (err) {
-              console.error('Error fetching profile for user:', request.user_id, err);
-              return {
-                ...request,
-                profiles: { username: 'Unknown' }
-              };
-            }
-          })
-        );
-        setDepositRequests(requestsWithProfiles);
+        // Get unique user IDs
+        const userIds = [...new Set(data.map(r => r.user_id))];
+        
+        // Fetch all profiles in one query
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        
+        setDepositRequests(data.map(request => ({
+          ...request,
+          profiles: profileMap.get(request.user_id) || { username: 'Unknown' }
+        })));
       }
     } catch (error) {
       console.error('Error fetching deposit requests:', error);
@@ -208,9 +188,9 @@ const Admin = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const fetchTournaments = async () => {
+  const fetchTournaments = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('tournaments')
@@ -231,9 +211,9 @@ const Admin = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -251,7 +231,11 @@ const Admin = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
+
+  const fetchData = useCallback(async () => {
+    await Promise.all([fetchWithdrawalRequests(), fetchDepositRequests(), fetchTournaments(), fetchUsers()]);
+  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchTournaments, fetchUsers]);
 
   if (isLoading) {
     return (
@@ -275,7 +259,7 @@ const Admin = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/")}
               className="hover:bg-primary/10"
             >
               <ArrowLeft className="w-5 h-5" />
