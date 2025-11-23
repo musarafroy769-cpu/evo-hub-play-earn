@@ -1,55 +1,82 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Trophy, Wallet, AlertCircle } from "lucide-react";
+import { Bell, Trophy, Wallet, AlertCircle, DollarSign } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
 
 const Notifications = () => {
-  const notifications = [
-    {
-      id: 1,
-      type: "tournament",
-      title: "Match Starting Soon",
-      message: "Free Fire Friday Rush starts in 30 minutes",
-      time: "5 min ago",
-      read: false,
-      icon: Trophy,
-    },
-    {
-      id: 2,
-      type: "withdrawal",
-      title: "Withdrawal Approved",
-      message: "₹2,000 has been transferred to your UPI",
-      time: "1 hour ago",
-      read: false,
-      icon: Wallet,
-    },
-    {
-      id: 3,
-      type: "result",
-      title: "Tournament Result",
-      message: "You won 1st place in BGMI Squad Showdown!",
-      time: "2 hours ago",
-      read: true,
-      icon: Trophy,
-    },
-    {
-      id: 4,
-      type: "announcement",
-      title: "New Features",
-      message: "Check out the new tournament filters",
-      time: "1 day ago",
-      read: true,
-      icon: Bell,
-    },
-    {
-      id: 5,
-      type: "alert",
-      title: "Important Update",
-      message: "Room ID for tonight's match has been updated",
-      time: "2 days ago",
-      read: true,
-      icon: AlertCircle,
-    },
-  ];
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+      
+      // Subscribe to real-time notifications
+      const channel = supabase
+        .channel('notifications-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            setNotifications(prev => [payload.new as Notification, ...prev]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user?.id]);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "tournament":
+        return Trophy;
+      case "withdrawal":
+        return Wallet;
+      case "deposit":
+        return DollarSign;
+      default:
+        return Bell;
+    }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -57,12 +84,20 @@ const Notifications = () => {
         return "text-primary";
       case "withdrawal":
         return "text-accent";
-      case "result":
+      case "deposit":
         return "text-secondary";
       default:
         return "text-muted-foreground";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -82,41 +117,48 @@ const Notifications = () => {
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-6">
-        <div className="space-y-3">
-          {notifications.map((notification) => {
-            const Icon = notification.icon;
-            return (
-              <Card
-                key={notification.id}
-                className={`glass border-border p-4 hover:border-primary/50 transition-all ${
-                  !notification.read ? "border-primary/30" : ""
-                }`}
-              >
-                <div className="flex gap-3">
-                  <div className={`mt-1 ${getTypeColor(notification.type)}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-semibold text-sm">
-                        {notification.title}
-                      </h4>
-                      {!notification.read && (
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      )}
+        {notifications.length === 0 ? (
+          <div className="text-center py-12">
+            <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">No notifications yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((notification) => {
+              const Icon = getTypeIcon(notification.type);
+              return (
+                <Card
+                  key={notification.id}
+                  className={`glass border-border p-4 hover:border-primary/50 transition-all ${
+                    !notification.read ? "border-primary/30" : ""
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <div className={`mt-1 ${getTypeColor(notification.type)}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {notification.time}
-                    </p>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-1">
+                        <h4 className="font-semibold text-sm">
+                          {notification.title}
+                        </h4>
+                        {!notification.read && (
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
