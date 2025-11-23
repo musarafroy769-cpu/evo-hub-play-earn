@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Edit, Trash2, Upload, Radio, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 interface Tournament {
   id: string;
@@ -46,6 +47,9 @@ interface Tournament {
   image_url: string | null;
   room_id: string | null;
   room_password: string | null;
+  description: string | null;
+  position_prizes: any[];
+  per_kill_prize: number;
 }
 
 interface TournamentManagementProps {
@@ -69,7 +73,12 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
     prize_pool: "0",
     total_slots: "100",
     scheduled_at: "",
+    description: "",
+    per_kill_prize: "0",
   });
+  const [positionPrizes, setPositionPrizes] = useState<Array<{ position: string; prize: string }>>([
+    { position: "1", prize: "0" },
+  ]);
   const [resultData, setResultData] = useState({
     winner_notes: "",
   });
@@ -88,7 +97,10 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
       prize_pool: "0",
       total_slots: "100",
       scheduled_at: "",
+      description: "",
+      per_kill_prize: "0",
     });
+    setPositionPrizes([{ position: "1", prize: "0" }]);
     setDialogOpen(true);
   };
 
@@ -103,7 +115,14 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
       prize_pool: tournament.prize_pool.toString(),
       total_slots: tournament.total_slots.toString(),
       scheduled_at: new Date(tournament.scheduled_at).toISOString().slice(0, 16),
+      description: tournament.description || "",
+      per_kill_prize: tournament.per_kill_prize?.toString() || "0",
     });
+    setPositionPrizes(
+      tournament.position_prizes && tournament.position_prizes.length > 0
+        ? tournament.position_prizes
+        : [{ position: "1", prize: "0" }]
+    );
     setDialogOpen(true);
   };
 
@@ -146,6 +165,9 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
       total_slots: Number(formData.total_slots),
       scheduled_at: new Date(formData.scheduled_at).toISOString(),
       status: 'upcoming',
+      description: formData.description || null,
+      per_kill_prize: Number(formData.per_kill_prize),
+      position_prizes: positionPrizes.filter(p => p.position && p.prize),
     };
 
     if (editMode && selectedTournament) {
@@ -485,8 +507,97 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
                   onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
                   className="glass border-border"
                 />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Tournament Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the tournament rules, format, and other details..."
+                className="glass border-border"
+                rows={4}
+              />
+            </div>
+
+            <Separator className="my-6" />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Prize Breakdown</h3>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPositionPrizes([...positionPrizes, { position: "", prize: "" }])}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Position
+                </Button>
+              </div>
+
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                {positionPrizes.map((prize, index) => (
+                  <div key={index} className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Position (e.g., 1, 2, 3)"
+                        value={prize.position}
+                        onChange={(e) => {
+                          const newPrizes = [...positionPrizes];
+                          newPrizes[index].position = e.target.value;
+                          setPositionPrizes(newPrizes);
+                        }}
+                        className="glass border-border"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Prize Amount (₹)"
+                        type="number"
+                        value={prize.prize}
+                        onChange={(e) => {
+                          const newPrizes = [...positionPrizes];
+                          newPrizes[index].prize = e.target.value;
+                          setPositionPrizes(newPrizes);
+                        }}
+                        className="glass border-border"
+                      />
+                    </div>
+                    {positionPrizes.length > 1 && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          const newPrizes = positionPrizes.filter((_, i) => i !== index);
+                          setPositionPrizes(newPrizes);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-border">
+                <Label htmlFor="per_kill_prize">Per Kill Prize (₹)</Label>
+                <Input
+                  id="per_kill_prize"
+                  type="number"
+                  value={formData.per_kill_prize}
+                  onChange={(e) => setFormData({ ...formData, per_kill_prize: e.target.value })}
+                  placeholder="Prize amount for each kill"
+                  className="glass border-border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Players will earn this amount for every kill in the tournament
+                </p>
               </div>
             </div>
+          </div>
           </div>
 
           <DialogFooter>
