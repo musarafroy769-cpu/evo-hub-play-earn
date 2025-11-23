@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Withdrawal = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Get the default tab from URL parameter
+  const defaultTab = searchParams.get('tab') || 'deposit';
   
   // Withdrawal states
   const [upiId, setUpiId] = useState("");
@@ -307,7 +311,7 @@ const Withdrawal = () => {
         </Card>
 
         {/* Deposit & Withdrawal Tabs */}
-        <Tabs defaultValue="deposit" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 glass border-border">
             <TabsTrigger value="deposit" className="gap-2">
               <CreditCard className="w-4 h-4" />

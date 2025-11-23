@@ -12,7 +12,8 @@ import {
   Target,
   ChevronRight,
   CreditCard,
-  Shield
+  Shield,
+  Plus
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -190,12 +191,20 @@ const Profile = () => {
             </div>
             <Wallet className="w-12 h-12 text-primary/30" />
           </div>
-          <Link to="/withdrawal">
-            <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Withdraw Money
-            </Button>
-          </Link>
+          <div className="grid grid-cols-2 gap-3">
+            <Link to="/withdrawal?tab=deposit">
+              <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Money
+              </Button>
+            </Link>
+            <Link to="/withdrawal?tab=withdrawal">
+              <Button variant="outline" className="w-full border-primary/30 hover:bg-primary/10">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Withdraw
+              </Button>
+            </Link>
+          </div>
         </Card>
 
         {/* Admin Panel Button */}
