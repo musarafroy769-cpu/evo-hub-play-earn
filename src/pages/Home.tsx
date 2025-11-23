@@ -1,35 +1,80 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, Trophy, Users, Clock, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import heroBanner from "@/assets/hero-banner.jpg";
 import ffTournament from "@/assets/ff-tournament.jpg";
 import bgmiTournament from "@/assets/bgmi-tournament.jpg";
 
+interface Tournament {
+  id: string;
+  title: string;
+  game_type: string;
+  entry_fee: number;
+  prize_pool: number;
+  total_slots: number;
+  filled_slots: number;
+  scheduled_at: string;
+  image_url: string | null;
+}
+
 const Home = () => {
-  const featuredTournaments = [
-    {
-      id: 1,
-      title: "Free Fire Friday Rush",
-      game: "Free Fire",
-      prize: "₹5,000",
-      entry: "₹50",
-      slots: "48/100",
-      time: "Tonight 8:00 PM",
-      image: ffTournament,
-    },
-    {
-      id: 2,
-      title: "BGMI Squad Showdown",
-      game: "BGMI",
-      prize: "₹10,000",
-      entry: "₹100",
-      slots: "32/64",
-      time: "Tomorrow 6:00 PM",
-      image: bgmiTournament,
-    },
-  ];
+  const { user } = useAuth();
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [userGameType, setUserGameType] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+      fetchTournaments();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('game_type, wallet_balance')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setUserGameType(data.game_type);
+        setWalletBalance(data.wallet_balance || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const fetchTournaments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'upcoming')
+        .order('scheduled_at', { ascending: true })
+        .limit(2);
+
+      if (!error && data) {
+        setTournaments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching tournaments:', error);
+    }
+  };
+
+  // Filter tournaments based on user's game type
+  const filteredTournaments = userGameType
+    ? tournaments.filter(t => t.game_type.toUpperCase() === userGameType.toUpperCase())
+    : tournaments;
 
   return (
     <div className="min-h-screen">
@@ -45,7 +90,7 @@ const Home = () => {
             </div>
             <div className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-primary/30">
               <Wallet className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold">₹1,250</span>
+              <span className="text-sm font-semibold">₹{walletBalance.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -104,55 +149,69 @@ const Home = () => {
           </div>
 
           <div className="space-y-4">
-            {featuredTournaments.map((tournament) => (
-              <Card 
-                key={tournament.id} 
-                className="glass border-border overflow-hidden hover:border-primary/50 transition-all group"
-              >
-                <div className="relative">
-                  <img 
-                    src={tournament.image} 
-                    alt={tournament.title}
-                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-card/90 backdrop-blur text-foreground border-primary/30">
-                      {tournament.game}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="p-4">
-                  <h4 className="font-bold mb-2">{tournament.title}</h4>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Prize Pool</p>
-                      <p className="text-lg font-bold text-primary">{tournament.prize}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Entry Fee</p>
-                      <p className="text-lg font-bold">{tournament.entry}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span>{tournament.slots} slots</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span>{tournament.time}</span>
-                    </div>
-                  </div>
-
-                  <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
-                    Join Tournament
-                  </Button>
-                </div>
+            {filteredTournaments.length === 0 ? (
+              <Card className="glass border-border p-8">
+                <p className="text-center text-muted-foreground">
+                  {userGameType 
+                    ? `No ${userGameType} tournaments available at the moment`
+                    : 'No tournaments available. Please set your game type in your profile.'}
+                </p>
               </Card>
-            ))}
+            ) : (
+              filteredTournaments.map((tournament) => {
+                const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
+                
+                return (
+                  <Card 
+                    key={tournament.id} 
+                    className="glass border-border overflow-hidden hover:border-primary/50 transition-all group"
+                  >
+                    <div className="relative">
+                      <img 
+                        src={tournament.image_url || gameImage} 
+                        alt={tournament.title}
+                        className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-card/90 backdrop-blur text-foreground border-primary/30">
+                          {tournament.game_type}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h4 className="font-bold mb-2">{tournament.title}</h4>
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Prize Pool</p>
+                          <p className="text-lg font-bold text-primary">₹{tournament.prize_pool}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Entry Fee</p>
+                          <p className="text-lg font-bold">{tournament.entry_fee === 0 ? "Free" : `₹${tournament.entry_fee}`}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span>{tournament.filled_slots}/{tournament.total_slots} slots</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <span>{new Date(tournament.scheduled_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
+                        Join Tournament
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </div>
 
