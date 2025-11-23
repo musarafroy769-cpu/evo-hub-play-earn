@@ -162,10 +162,10 @@ const Home = () => {
                 const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
                 
                 return (
-                  <Card 
-                    key={tournament.id} 
-                    className="glass border-border overflow-hidden hover:border-primary/50 transition-all group"
-                  >
+                  <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
+                    <Card 
+                      className="glass border-border overflow-hidden hover:border-primary/50 transition-all group"
+                    >
                     <div className="relative">
                       <img 
                         src={tournament.image_url || gameImage} 
@@ -205,10 +205,11 @@ const Home = () => {
                       </div>
 
                       <Button className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all">
-                        Join Tournament
+                        View Details
                       </Button>
                     </div>
                   </Card>
+                  </Link>
                 );
               })
             )}
