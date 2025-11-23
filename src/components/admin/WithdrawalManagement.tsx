@@ -73,6 +73,53 @@ export const WithdrawalManagement = ({ requests, onRefresh }: WithdrawalManageme
       return;
     }
 
+    // If approving, first deduct from wallet
+    if (actionType === "approve") {
+      // Get current wallet balance
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('wallet_balance')
+        .eq('id', selectedRequest.user_id)
+        .single();
+
+      if (profileError) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch user wallet balance",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const currentBalance = Number(profile.wallet_balance || 0);
+      const withdrawAmount = Number(selectedRequest.amount);
+
+      if (currentBalance < withdrawAmount) {
+        toast({
+          title: "Insufficient Balance",
+          description: "User doesn't have enough balance for this withdrawal",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Deduct from wallet
+      const { error: walletError } = await supabase
+        .from('profiles')
+        .update({ wallet_balance: currentBalance - withdrawAmount })
+        .eq('id', selectedRequest.user_id);
+
+      if (walletError) {
+        toast({
+          title: "Error",
+          description: "Failed to update wallet balance",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Update withdrawal request status
     const updates: any = {
       status: actionType === "approve" ? "approved" : "rejected",
       admin_notes: adminNotes.trim() || null,
