@@ -69,45 +69,73 @@ const Admin = () => {
   const checkAdminRole = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+    try {
+      const { data, error } = await supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-    if (!error && data) {
-      setIsAdmin(true);
-    } else {
+      if (!error && data) {
+        setIsAdmin(true);
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "You don't have admin privileges",
+          variant: "destructive",
+        });
+        navigate("/");
+      }
+    } catch (error) {
+      console.error('Error checking admin role:', error);
       toast({
-        title: "Access Denied",
-        description: "You don't have admin privileges",
+        title: "Error",
+        description: "Failed to verify admin access",
         variant: "destructive",
       });
       navigate("/");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const fetchWithdrawalRequests = async () => {
-    const { data, error } = await supabase
-      .from('withdrawal_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('withdrawal_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      // Fetch usernames separately
-      const requestsWithProfiles = await Promise.all(
-        data.map(async (request) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', request.user_id)
-            .single();
-          
-          return {
-            ...request,
-            profiles: profile || { username: 'Unknown' }
-          };
-        })
-      );
-      setRequests(requestsWithProfiles);
+      if (!error && data) {
+        // Fetch usernames separately with better error handling
+        const requestsWithProfiles = await Promise.all(
+          data.map(async (request) => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('username')
+                .eq('id', request.user_id)
+                .maybeSingle();
+              
+              return {
+                ...request,
+                profiles: profile || { username: 'Unknown' }
+              };
+            } catch (err) {
+              console.error('Error fetching profile for user:', request.user_id, err);
+              return {
+                ...request,
+                profiles: { username: 'Unknown' }
+              };
+            }
+          })
+        );
+        setRequests(requestsWithProfiles);
+      }
+    } catch (error) {
+      console.error('Error fetching withdrawal requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load withdrawal requests",
+        variant: "destructive",
+      });
     }
   };
 
@@ -177,8 +205,9 @@ const Admin = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">Verifying access...</p>
       </div>
     );
   }
