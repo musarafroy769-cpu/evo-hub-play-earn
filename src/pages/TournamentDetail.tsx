@@ -1,161 +1,198 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Users, Clock, Trophy, Calendar, MapPin, Shield } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Users, 
+  Clock, 
+  Trophy, 
+  Target,
+  Calendar,
+  Award,
+  Shield
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import ffTournament from "@/assets/ff-tournament.jpg";
+import bgmiTournament from "@/assets/bgmi-tournament.jpg";
 
 const TournamentDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isJoining, setIsJoining] = useState(false);
+  const [tournament, setTournament] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
-    if (user && id) {
+    if (id && user) {
+      fetchTournamentDetails();
       checkIfJoined();
       fetchWalletBalance();
     }
-  }, [user, id]);
+  }, [id, user]);
+
+  const fetchTournamentDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setTournament(data);
+    } catch (error) {
+      console.error('Error fetching tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tournament details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const checkIfJoined = async () => {
     if (!user || !id) return;
 
-    const { data } = await supabase
-      .from('tournament_participants')
-      .select('*')
-      .eq('tournament_id', id)
-      .eq('user_id', user.id)
-      .single();
+    try {
+      const { data } = await supabase
+        .from('tournament_participants')
+        .select('id')
+        .eq('tournament_id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    setHasJoined(!!data);
+      setHasJoined(!!data);
+    } catch (error) {
+      console.error('Error checking participation:', error);
+    }
   };
 
   const fetchWalletBalance = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('wallet_balance')
-      .eq('id', user.id)
-      .single();
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('wallet_balance')
+        .eq('id', user.id)
+        .maybeSingle();
 
-    if (data) {
-      setWalletBalance(Number(data.wallet_balance) || 0);
+      if (data) {
+        setWalletBalance(data.wallet_balance || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
     }
   };
 
   const handleJoinTournament = async () => {
-    if (!user) {
+    if (!user || !tournament) return;
+
+    if (hasJoined) {
       toast({
-        title: "Login Required",
-        description: "Please login to join tournaments",
-        variant: "destructive",
+        title: "Already Joined",
+        description: "You have already joined this tournament",
       });
-      navigate("/auth");
       return;
     }
 
-    const entryFee = parseFloat(tournament.entry.replace(/[^0-9.-]+/g, "")) || 0;
+    if (tournament.filled_slots >= tournament.total_slots) {
+      toast({
+        title: "Tournament Full",
+        description: "This tournament has reached maximum capacity",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    if (entryFee > 0 && walletBalance < entryFee) {
+    if (walletBalance < tournament.entry_fee) {
       toast({
         title: "Insufficient Balance",
-        description: "You don't have enough balance to join this tournament",
+        description: "Please add funds to your wallet",
         variant: "destructive",
       });
       return;
     }
 
-    setIsJoining(true);
-
-    // Deduct entry fee if applicable
-    if (entryFee > 0) {
-      const { error: updateError } = await supabase
+    setJoining(true);
+    try {
+      // Deduct entry fee from wallet
+      const newBalance = walletBalance - tournament.entry_fee;
+      const { error: walletError } = await supabase
         .from('profiles')
-        .update({ wallet_balance: walletBalance - entryFee })
+        .update({ wallet_balance: newBalance })
         .eq('id', user.id);
 
-      if (updateError) {
-        toast({
-          title: "Error",
-          description: "Failed to process entry fee",
-          variant: "destructive",
+      if (walletError) throw walletError;
+
+      // Add participant
+      const { error: participantError } = await supabase
+        .from('tournament_participants')
+        .insert({
+          tournament_id: tournament.id,
+          user_id: user.id,
         });
-        setIsJoining(false);
-        return;
-      }
-    }
 
-    // Join tournament
-    const { error } = await supabase
-      .from('tournament_participants')
-      .insert({
-        tournament_id: id,
-        user_id: user.id,
-      });
+      if (participantError) throw participantError;
 
-    setIsJoining(false);
+      // Update filled slots
+      const { error: tournamentError } = await supabase
+        .from('tournaments')
+        .update({ filled_slots: tournament.filled_slots + 1 })
+        .eq('id', tournament.id);
 
-    if (error) {
-      // Refund if join failed
-      if (entryFee > 0) {
-        await supabase
-          .from('profiles')
-          .update({ wallet_balance: walletBalance })
-          .eq('id', user.id);
-      }
-      
-      toast({
-        title: "Error",
-        description: error.message.includes('duplicate') ? "You've already joined this tournament" : "Failed to join tournament",
-        variant: "destructive",
-      });
-    } else {
+      if (tournamentError) throw tournamentError;
+
       toast({
         title: "Success!",
-        description: "You've successfully joined the tournament",
+        description: "You have joined the tournament",
       });
+
       setHasJoined(true);
-      fetchWalletBalance();
+      setWalletBalance(newBalance);
+      setTournament({ ...tournament, filled_slots: tournament.filled_slots + 1 });
+    } catch (error) {
+      console.error('Error joining tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join tournament",
+        variant: "destructive",
+      });
+    } finally {
+      setJoining(false);
     }
   };
 
-  const tournament = {
-    id: 1,
-    title: "Free Fire Friday Rush",
-    game: "Free Fire",
-    mode: "Solo",
-    prize: "₹5,000",
-    entry: "₹50",
-    slots: "48/100",
-    date: "Friday, Nov 22, 2024",
-    time: "8:00 PM IST",
-    map: "Bermuda",
-    organizer: "Evo Hub Official",
-    image: ffTournament,
-    prizeBreakdown: [
-      { position: "1st Place", amount: "₹2,000" },
-      { position: "2nd Place", amount: "₹1,200" },
-      { position: "3rd Place", amount: "₹800" },
-      { position: "4th-10th", amount: "₹150 each" },
-    ],
-    rules: [
-      "No emulators allowed",
-      "Must join match 10 minutes before start time",
-      "Screenshot proof required for kills",
-      "Any cheating will result in instant ban",
-      "Room ID will be shared 30 minutes before match",
-    ],
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">Loading tournament...</p>
+      </div>
+    );
+  }
+
+  if (!tournament) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Tournament not found</p>
+        <Button onClick={() => navigate('/tournaments')}>Back to Tournaments</Button>
+      </div>
+    );
+  }
+
+  const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
 
   return (
     <div className="min-h-screen">
@@ -176,129 +213,90 @@ const TournamentDetail = () => {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto pb-6">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Tournament Image */}
-        <div className="relative">
+        <div className="relative rounded-2xl overflow-hidden">
           <img 
-            src={tournament.image} 
+            src={tournament.image_url || gameImage} 
             alt={tournament.title}
-            className="w-full h-56 object-cover"
+            className="w-full h-48 object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute top-4 left-4 right-4 flex justify-between">
-            <Badge className="bg-card/90 backdrop-blur text-foreground border-primary/30">
-              {tournament.game}
-            </Badge>
-            <Badge className="bg-secondary/90 backdrop-blur text-secondary-foreground">
-              {tournament.mode}
+          <div className="absolute top-4 left-4">
+            <Badge className="bg-primary/90 backdrop-blur text-primary-foreground">
+              {tournament.game_type}
             </Badge>
           </div>
         </div>
 
-        <div className="px-4 space-y-6 -mt-12 relative z-10">
-          {/* Title Card */}
-          <Card className="glass border-primary/30 p-6">
-            <h2 className="text-2xl font-bold mb-2">{tournament.title}</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              by {tournament.organizer}
-            </p>
-            
-            <div className="grid grid-cols-2 gap-4">
+        {/* Tournament Info */}
+        <Card className="glass border-border p-6">
+          <h1 className="text-2xl font-bold mb-2">{tournament.title}</h1>
+          <div className="flex items-center gap-2 mb-6">
+            <Badge variant="outline">{tournament.mode}</Badge>
+            <Badge variant="outline" className="border-accent text-accent">
+              {tournament.filled_slots}/{tournament.total_slots} Slots
+            </Badge>
+            {tournament.status === 'upcoming' && (
+              <Badge className="bg-secondary/90 text-secondary-foreground">
+                Upcoming
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="text-center p-4 rounded-lg bg-muted/30">
+              <Trophy className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <p className="text-sm text-muted-foreground mb-1">Prize Pool</p>
+              <p className="text-xl font-bold text-primary">₹{tournament.prize_pool}</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-muted/30">
+              <Award className="w-6 h-6 mx-auto mb-2 text-secondary" />
+              <p className="text-sm text-muted-foreground mb-1">Entry Fee</p>
+              <p className="text-xl font-bold">
+                {tournament.entry_fee === 0 ? "Free" : `₹${tournament.entry_fee}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Prize Pool</p>
-                <p className="text-2xl font-bold text-primary">{tournament.prize}</p>
+                <p className="text-sm text-muted-foreground">Date & Time</p>
+                <p className="font-medium">
+                  {new Date(tournament.scheduled_at).toLocaleString()}
+                </p>
               </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Entry Fee</p>
-                <p className="text-2xl font-bold">{tournament.entry}</p>
+                <p className="text-sm text-muted-foreground">Mode</p>
+                <p className="font-medium">{tournament.mode} ({tournament.total_slots} Players)</p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          {/* Match Info */}
-          <Card className="glass border-border p-6">
-            <h3 className="text-lg font-bold mb-4">Match Information</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Date</p>
-                  <p className="text-xs text-muted-foreground">{tournament.date}</p>
-                </div>
-              </div>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Time</p>
-                  <p className="text-xs text-muted-foreground">{tournament.time}</p>
-                </div>
-              </div>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Map</p>
-                  <p className="text-xs text-muted-foreground">{tournament.map}</p>
-                </div>
-              </div>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Slots Available</p>
-                  <p className="text-xs text-muted-foreground">{tournament.slots} players</p>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <Separator className="mb-6" />
 
-          {/* Prize Breakdown */}
-          <Card className="glass border-border p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Trophy className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-bold">Prize Breakdown</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Your Wallet Balance:</span>
+              <span className="font-semibold text-primary">₹{walletBalance.toFixed(2)}</span>
             </div>
-            <div className="space-y-2">
-              {tournament.prizeBreakdown.map((prize, index) => (
-                <div 
-                  key={index}
-                  className="flex justify-between items-center p-3 rounded-lg bg-muted/30"
-                >
-                  <span className="text-sm font-medium">{prize.position}</span>
-                  <span className="text-sm font-bold text-primary">{prize.amount}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
 
-          {/* Rules */}
-          <Card className="glass border-border p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-bold">Tournament Rules</h3>
-            </div>
-            <ul className="space-y-2">
-              {tournament.rules.map((rule, index) => (
-                <li key={index} className="flex gap-2 text-sm">
-                  <span className="text-primary mt-1">•</span>
-                  <span className="text-muted-foreground">{rule}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          {/* Join Button */}
-          <div className="sticky bottom-20 pt-4 bg-gradient-to-t from-background via-background to-transparent">
-            <Button 
-              className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all py-6 text-lg"
+            <Button
               onClick={handleJoinTournament}
-              disabled={isJoining || hasJoined}
+              disabled={joining || hasJoined || tournament.filled_slots >= tournament.total_slots}
+              className="w-full bg-gradient-gaming hover:shadow-neon-primary transition-all"
             >
-              {hasJoined ? "Already Joined" : isJoining ? "Joining..." : `Join Tournament for ${tournament.entry}`}
+              {joining ? "Joining..." : hasJoined ? "Already Joined" : 
+                tournament.filled_slots >= tournament.total_slots ? "Tournament Full" :
+                `Join Tournament - ${tournament.entry_fee === 0 ? "Free" : `₹${tournament.entry_fee}`}`}
             </Button>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
