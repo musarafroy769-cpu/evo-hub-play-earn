@@ -141,24 +141,6 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="glass border-border p-4 text-center hover:border-primary/50 transition-all">
-            <Trophy className="w-6 h-6 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">24</p>
-            <p className="text-xs text-muted-foreground">Tournaments</p>
-          </Card>
-          <Card className="glass border-border p-4 text-center hover:border-primary/50 transition-all">
-            <Users className="w-6 h-6 mx-auto mb-2 text-secondary" />
-            <p className="text-2xl font-bold">1.2K</p>
-            <p className="text-xs text-muted-foreground">Active Players</p>
-          </Card>
-          <Card className="glass border-border p-4 text-center hover:border-primary/50 transition-all">
-            <Wallet className="w-6 h-6 mx-auto mb-2 text-accent" />
-            <p className="text-2xl font-bold">₹2L+</p>
-            <p className="text-xs text-muted-foreground">Prize Pool</p>
-          </Card>
-        </div>
 
         {/* Featured Tournaments */}
         <div>
@@ -237,26 +219,6 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Game Selection */}
-        <div>
-          <h3 className="text-lg font-bold mb-4">Select Your Game</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="glass border-border p-6 text-center hover:border-primary/50 transition-all cursor-pointer group">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center group-hover:shadow-neon-primary transition-all">
-                <Trophy className="w-8 h-8 text-primary" />
-              </div>
-              <p className="font-bold mb-1">Free Fire</p>
-              <p className="text-xs text-muted-foreground">12 Tournaments</p>
-            </Card>
-            <Card className="glass border-border p-6 text-center hover:border-secondary/50 transition-all cursor-pointer group">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center group-hover:shadow-neon-secondary transition-all">
-                <Trophy className="w-8 h-8 text-secondary" />
-              </div>
-              <p className="font-bold mb-1">BGMI</p>
-              <p className="text-xs text-muted-foreground">8 Tournaments</p>
-            </Card>
-          </div>
-        </div>
       </div>
     </div>
   );
