@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,7 +87,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
     room_password: "",
   });
 
-  const openCreateDialog = () => {
+  const openCreateDialog = useCallback(() => {
     setEditMode(false);
     setFormData({
       title: "",
@@ -102,9 +102,9 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
     });
     setPositionPrizes([{ position: "1", prize: "0" }]);
     setDialogOpen(true);
-  };
+  }, []);
 
-  const openEditDialog = (tournament: Tournament) => {
+  const openEditDialog = useCallback((tournament: Tournament) => {
     setEditMode(true);
     setSelectedTournament(tournament);
     setFormData({
@@ -124,7 +124,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
         : [{ position: "1", prize: "0" }]
     );
     setDialogOpen(true);
-  };
+  }, []);
 
   const openResultsDialog = (tournament: Tournament) => {
     setSelectedTournament(tournament);
@@ -279,7 +279,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
       .update({
         room_id: roomData.room_id.trim(),
         room_password: roomData.room_password.trim(),
-        status: 'live',
+        status: 'ongoing',
       })
       .eq('id', selectedTournament.id);
 
@@ -292,7 +292,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
     } else {
       toast({
         title: "Tournament is Live!",
-        description: "Room details saved and tournament is now live",
+        description: "Room details saved and tournament is now ongoing",
       });
       setRoomDialogOpen(false);
       onRefresh();
@@ -302,8 +302,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
   const getStatusBadge = (status: string) => {
     const variants: any = {
       upcoming: "bg-blue-500/20 text-blue-500 border-blue-500/30",
-      live: "bg-green-500/20 text-green-500 border-green-500/30 animate-pulse",
-      ongoing: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+      ongoing: "bg-green-500/20 text-green-500 border-green-500/30 animate-pulse",
       completed: "bg-gray-500/20 text-gray-500 border-gray-500/30",
     };
 
