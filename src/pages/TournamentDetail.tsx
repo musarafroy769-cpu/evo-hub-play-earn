@@ -293,7 +293,69 @@ const TournamentDetail = () => {
             </div>
           </div>
 
-          <Separator className="mb-6" />
+          {/* Description Section */}
+          {tournament.description && (
+            <>
+              <Separator className="my-6" />
+              <div className="space-y-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Tournament Details
+                </h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {tournament.description}
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Prize Breakdown Section */}
+          {(tournament.position_prizes?.length > 0 || tournament.per_kill_prize > 0) && (
+            <>
+              <Separator className="my-6" />
+              <div className="space-y-4">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  Prize Breakdown
+                </h3>
+
+                {/* Position Prizes */}
+                {tournament.position_prizes && tournament.position_prizes.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-muted-foreground">🏆 Position Prizes</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {tournament.position_prizes.map((prize: any, index: number) => (
+                        <div key={index} className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">#{prize.position}</span>
+                            <span className="font-bold text-primary">₹{prize.prize}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Per Kill Prize */}
+                {tournament.per_kill_prize > 0 && (
+                  <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-secondary" />
+                        <span className="font-medium">Per Kill Reward</span>
+                      </div>
+                      <span className="text-xl font-bold text-secondary">₹{tournament.per_kill_prize}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Earn ₹{tournament.per_kill_prize} for every elimination!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <Separator className="my-6" />
 
           {/* Room Details - Show only if tournament is live and user has joined */}
           {tournament.status === 'live' && hasJoined && tournament.room_id && tournament.room_password && (

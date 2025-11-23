@@ -121,12 +121,15 @@ export type Database = {
       tournaments: {
         Row: {
           created_at: string | null
+          description: string | null
           entry_fee: number
           filled_slots: number
           game_type: string
           id: string
           image_url: string | null
           mode: string
+          per_kill_prize: number | null
+          position_prizes: Json | null
           prize_pool: number
           room_id: string | null
           room_password: string | null
@@ -138,12 +141,15 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           entry_fee?: number
           filled_slots?: number
           game_type: string
           id?: string
           image_url?: string | null
           mode: string
+          per_kill_prize?: number | null
+          position_prizes?: Json | null
           prize_pool: number
           room_id?: string | null
           room_password?: string | null
@@ -155,12 +161,15 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           entry_fee?: number
           filled_slots?: number
           game_type?: string
           id?: string
           image_url?: string | null
           mode?: string
+          per_kill_prize?: number | null
+          position_prizes?: Json | null
           prize_pool?: number
           room_id?: string | null
           room_password?: string | null

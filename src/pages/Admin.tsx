@@ -54,6 +54,9 @@ interface Tournament {
   image_url: string | null;
   room_id: string | null;
   room_password: string | null;
+  description: string | null;
+  position_prizes: any[];
+  per_kill_prize: number;
 }
 
 interface Profile {
@@ -214,7 +217,10 @@ const Admin = () => {
         .order('scheduled_at', { ascending: false });
 
       if (!error && data) {
-        setTournaments(data);
+        setTournaments(data.map(t => ({
+          ...t,
+          position_prizes: Array.isArray(t.position_prizes) ? t.position_prizes : []
+        })));
       }
     } catch (error) {
       console.error('Error fetching tournaments:', error);
