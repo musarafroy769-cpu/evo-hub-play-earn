@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy } from "lucide-react";
+import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { WithdrawalManagement } from "@/components/admin/WithdrawalManagement";
 import { TournamentManagement } from "@/components/admin/TournamentManagement";
+import { UserManagement } from "@/components/admin/UserManagement";
 
 interface WithdrawalRequest {
   id: string;
@@ -37,12 +38,22 @@ interface Tournament {
   image_url: string | null;
 }
 
+interface Profile {
+  id: string;
+  username: string;
+  wallet_balance: number;
+  mobile_number: string | null;
+  game_type: string | null;
+  game_uid: string | null;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -89,7 +100,7 @@ const Admin = () => {
   };
 
   const fetchData = async () => {
-    await Promise.all([fetchWithdrawalRequests(), fetchTournaments()]);
+    await Promise.all([fetchWithdrawalRequests(), fetchTournaments(), fetchUsers()]);
   };
 
   const fetchWithdrawalRequests = async () => {
@@ -154,6 +165,26 @@ const Admin = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, wallet_balance, mobile_number, game_type, game_uid')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -198,6 +229,10 @@ const Admin = () => {
               <Trophy className="w-4 h-4" />
               Tournaments
             </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="w-4 h-4" />
+              User Management
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="withdrawals">
@@ -211,6 +246,13 @@ const Admin = () => {
             <TournamentManagement 
               tournaments={tournaments}
               onRefresh={fetchTournaments}
+            />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement 
+              users={users}
+              onRefresh={fetchUsers}
             />
           </TabsContent>
         </Tabs>
