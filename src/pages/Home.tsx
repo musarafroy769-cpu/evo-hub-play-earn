@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,22 +28,15 @@ const Home = () => {
   const [userGameType, setUserGameType] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState(0);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserProfile();
-      fetchTournaments();
-    }
-  }, [user]);
-
-  const fetchUserProfile = async () => {
-    if (!user) return;
+  const fetchUserProfile = useCallback(async () => {
+    if (!user?.id) return;
 
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('game_type, wallet_balance')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
       if (!error && data) {
         setUserGameType(data.game_type);
@@ -52,9 +45,9 @@ const Home = () => {
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
-  };
+  }, [user?.id]);
 
-  const fetchTournaments = async () => {
+  const fetchTournaments = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('tournaments')
@@ -69,7 +62,14 @@ const Home = () => {
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserProfile();
+      fetchTournaments();
+    }
+  }, [user?.id, fetchUserProfile, fetchTournaments]);
 
   // Filter tournaments based on user's game type
   const filteredTournaments = userGameType
