@@ -22,10 +22,13 @@ const Profile = () => {
   const navigate = useNavigate();
   const { signOut, user: authUser } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authUser) {
       checkAdminRole();
+      fetchProfile();
     }
   }, [authUser]);
 
@@ -36,22 +39,33 @@ const Profile = () => {
     setIsAdmin(!!data);
   };
 
+  const fetchProfile = async () => {
+    if (!authUser) return;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    if (!error && data) {
+      setProfile(data);
+    }
+    setLoading(false);
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
   };
 
-  const user = {
-    username: "ProGamer123",
-    email: "progamer@example.com",
-    phone: "+91 98765 43210",
-    ffUid: "123456789",
-    bgmiUid: "987654321",
-    balance: "₹1,250",
-    matchesPlayed: 12,
-    wins: 3,
-    totalEarnings: "₹4,200",
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading profile...</p>
+      </div>
+    );
+  }
 
   const MenuButton = ({ 
     icon: Icon, 
@@ -99,14 +113,14 @@ const Profile = () => {
           <div className="flex items-start gap-4 mb-6">
             <Avatar className="w-16 h-16 border-2 border-primary">
               <AvatarFallback className="bg-gradient-gaming text-2xl">
-                {user.username.charAt(0)}
+                {profile?.username?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-xl font-bold mb-1">{user.username}</h2>
-              <p className="text-sm text-muted-foreground mb-2">{user.email}</p>
+              <h2 className="text-xl font-bold mb-1">{profile?.username || 'User'}</h2>
+              <p className="text-sm text-muted-foreground mb-2">{authUser?.email || ''}</p>
               <Badge className="bg-primary/20 text-primary border-primary/30">
-                Pro Player
+                {profile?.game_type || 'Player'}
               </Badge>
             </div>
           </div>
@@ -115,17 +129,17 @@ const Profile = () => {
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-3 rounded-lg bg-muted/30">
               <Trophy className="w-5 h-5 mx-auto mb-1 text-primary" />
-              <p className="text-lg font-bold">{user.matchesPlayed}</p>
+              <p className="text-lg font-bold">0</p>
               <p className="text-xs text-muted-foreground">Matches</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted/30">
               <Target className="w-5 h-5 mx-auto mb-1 text-secondary" />
-              <p className="text-lg font-bold">{user.wins}</p>
+              <p className="text-lg font-bold">0</p>
               <p className="text-xs text-muted-foreground">Wins</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted/30">
               <Wallet className="w-5 h-5 mx-auto mb-1 text-accent" />
-              <p className="text-lg font-bold">{user.totalEarnings}</p>
+              <p className="text-lg font-bold">₹0</p>
               <p className="text-xs text-muted-foreground">Earned</p>
             </div>
           </div>
@@ -137,18 +151,20 @@ const Profile = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
               <div>
-                <p className="text-sm font-medium">Free Fire UID</p>
-                <p className="text-xs text-muted-foreground mt-1">{user.ffUid}</p>
+                <p className="text-sm font-medium">{profile?.game_type || 'Game'} UID</p>
+                <p className="text-xs text-muted-foreground mt-1">{profile?.game_uid || 'Not set'}</p>
               </div>
               <Button variant="ghost" size="sm">Edit</Button>
             </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-              <div>
-                <p className="text-sm font-medium">BGMI UID</p>
-                <p className="text-xs text-muted-foreground mt-1">{user.bgmiUid}</p>
+            {profile?.mobile_number && (
+              <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium">Mobile Number</p>
+                  <p className="text-xs text-muted-foreground mt-1">{profile.mobile_number}</p>
+                </div>
+                <Button variant="ghost" size="sm">Edit</Button>
               </div>
-              <Button variant="ghost" size="sm">Edit</Button>
-            </div>
+            )}
           </div>
         </Card>
 
@@ -157,7 +173,7 @@ const Profile = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
-              <p className="text-3xl font-bold text-primary">{user.balance}</p>
+              <p className="text-3xl font-bold text-primary">₹{Number(profile?.wallet_balance || 0).toFixed(2)}</p>
             </div>
             <Wallet className="w-12 h-12 text-primary/30" />
           </div>
