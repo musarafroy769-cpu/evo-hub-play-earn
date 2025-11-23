@@ -24,6 +24,7 @@ const Withdrawal = () => {
   // Withdrawal states
   const [upiId, setUpiId] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawPhone, setWithdrawPhone] = useState("");
   
   // Deposit states
   const [depositAmount, setDepositAmount] = useState("");
@@ -109,6 +110,15 @@ const Withdrawal = () => {
       return;
     }
 
+    if (!withdrawPhone.trim()) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0) {
       toast({
@@ -145,6 +155,7 @@ const Withdrawal = () => {
         user_id: user.id,
         amount,
         upi_id: upiId.trim(),
+        phone_number: withdrawPhone.trim(),
         status: 'pending',
       });
 
@@ -163,6 +174,7 @@ const Withdrawal = () => {
       });
       setWithdrawAmount("");
       setUpiId("");
+      setWithdrawPhone("");
       fetchWithdrawalRequests();
     }
   };
@@ -464,6 +476,18 @@ const Withdrawal = () => {
 
               <form onSubmit={handleWithdrawal} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="withdraw-amount">Amount (₹)</Label>
+                  <Input
+                    id="withdraw-amount"
+                    type="number"
+                    placeholder={`Enter amount (Min: ₹${MIN_WITHDRAWAL})`}
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="glass border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="upi">UPI ID *</Label>
                   <Input
                     id="upi"
@@ -476,13 +500,13 @@ const Withdrawal = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="withdraw-amount">Amount (₹)</Label>
+                  <Label htmlFor="withdraw-phone">Phone Number *</Label>
                   <Input
-                    id="withdraw-amount"
-                    type="number"
-                    placeholder={`Enter amount (Min: ₹${MIN_WITHDRAWAL})`}
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    id="withdraw-phone"
+                    type="tel"
+                    placeholder="Enter phone number"
+                    value={withdrawPhone}
+                    onChange={(e) => setWithdrawPhone(e.target.value)}
                     className="glass border-border"
                   />
                 </div>
