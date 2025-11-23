@@ -52,6 +52,8 @@ interface Tournament {
   scheduled_at: string;
   status: string;
   image_url: string | null;
+  room_id: string | null;
+  room_password: string | null;
 }
 
 interface Profile {

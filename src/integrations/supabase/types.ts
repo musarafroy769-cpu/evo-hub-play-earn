@@ -128,6 +128,8 @@ export type Database = {
           image_url: string | null
           mode: string
           prize_pool: number
+          room_id: string | null
+          room_password: string | null
           scheduled_at: string
           status: string
           title: string
@@ -143,6 +145,8 @@ export type Database = {
           image_url?: string | null
           mode: string
           prize_pool: number
+          room_id?: string | null
+          room_password?: string | null
           scheduled_at: string
           status?: string
           title: string
@@ -158,6 +162,8 @@ export type Database = {
           image_url?: string | null
           mode?: string
           prize_pool?: number
+          room_id?: string | null
+          room_password?: string | null
           scheduled_at?: string
           status?: string
           title?: string

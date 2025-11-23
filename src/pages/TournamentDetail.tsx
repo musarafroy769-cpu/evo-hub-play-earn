@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Users, 
@@ -11,7 +13,10 @@ import {
   Target,
   Calendar,
   Award,
-  Shield
+  Shield,
+  Radio,
+  Lock,
+  Copy
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -238,8 +243,18 @@ const TournamentDetail = () => {
               {tournament.filled_slots}/{tournament.total_slots} Slots
             </Badge>
             {tournament.status === 'upcoming' && (
-              <Badge className="bg-secondary/90 text-secondary-foreground">
+              <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">
                 Upcoming
+              </Badge>
+            )}
+            {tournament.status === 'live' && (
+              <Badge className="bg-green-500/20 text-green-500 border-green-500/30 animate-pulse">
+                🔴 LIVE
+              </Badge>
+            )}
+            {tournament.status === 'completed' && (
+              <Badge className="bg-gray-500/20 text-gray-500 border-gray-500/30">
+                Completed
               </Badge>
             )}
           </div>
@@ -279,6 +294,88 @@ const TournamentDetail = () => {
           </div>
 
           <Separator className="mb-6" />
+
+          {/* Room Details - Show only if tournament is live and user has joined */}
+          {tournament.status === 'live' && hasJoined && tournament.room_id && tournament.room_password && (
+            <Card className="mb-6 p-4 bg-green-500/10 border-green-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Radio className="w-5 h-5 text-green-500 animate-pulse" />
+                <h3 className="font-bold text-green-500">🔴 LIVE - Room Details</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Lock className="w-3 h-3" />
+                    Room ID
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={tournament.room_id}
+                      className="glass border-border font-mono text-sm bg-background"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(tournament.room_id);
+                        toast({
+                          title: "Copied!",
+                          description: "Room ID copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Lock className="w-3 h-3" />
+                    Room Password
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={tournament.room_password}
+                      className="glass border-border font-mono text-sm bg-background"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(tournament.room_password);
+                        toast({
+                          title: "Copied!",
+                          description: "Password copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-green-500 mt-3">
+                ⚡ Use these details to join the game room. Good luck!
+              </p>
+            </Card>
+          )}
+
+          {/* Show live badge for non-joined users */}
+          {tournament.status === 'live' && !hasJoined && (
+            <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Radio className="w-5 h-5 text-green-500 animate-pulse" />
+                <p className="text-sm text-green-500 font-medium">
+                  🔴 This tournament is LIVE! Join now to get room details.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
