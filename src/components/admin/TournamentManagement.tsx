@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Radio, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,6 +44,8 @@ interface Tournament {
   scheduled_at: string;
   status: string;
   image_url: string | null;
+  room_id: string | null;
+  room_password: string | null;
 }
 
 interface TournamentManagementProps {
@@ -55,6 +57,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
+  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
@@ -69,6 +72,10 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
   });
   const [resultData, setResultData] = useState({
     winner_notes: "",
+  });
+  const [roomData, setRoomData] = useState({
+    room_id: "",
+    room_password: "",
   });
 
   const openCreateDialog = () => {
@@ -109,6 +116,15 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
   const openDeleteDialog = (tournament: Tournament) => {
     setSelectedTournament(tournament);
     setDeleteDialogOpen(true);
+  };
+
+  const openRoomDialog = (tournament: Tournament) => {
+    setSelectedTournament(tournament);
+    setRoomData({
+      room_id: tournament.room_id || "",
+      room_password: tournament.room_password || "",
+    });
+    setRoomDialogOpen(true);
   };
 
   const handleSubmit = async () => {
@@ -224,15 +240,53 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
     }
   };
 
+  const handleSaveRoomDetails = async () => {
+    if (!selectedTournament) return;
+
+    if (!roomData.room_id.trim() || !roomData.room_password.trim()) {
+      toast({
+        title: "Missing Details",
+        description: "Please fill in both Room ID and Password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('tournaments')
+      .update({
+        room_id: roomData.room_id.trim(),
+        room_password: roomData.room_password.trim(),
+        status: 'live',
+      })
+      .eq('id', selectedTournament.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update room details",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Tournament is Live!",
+        description: "Room details saved and tournament is now live",
+      });
+      setRoomDialogOpen(false);
+      onRefresh();
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: any = {
       upcoming: "bg-blue-500/20 text-blue-500 border-blue-500/30",
-      ongoing: "bg-green-500/20 text-green-500 border-green-500/30",
+      live: "bg-green-500/20 text-green-500 border-green-500/30 animate-pulse",
+      ongoing: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
       completed: "bg-gray-500/20 text-gray-500 border-gray-500/30",
     };
 
     return (
-      <Badge className={variants[status]}>
+      <Badge className={variants[status] || variants.upcoming}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
@@ -286,20 +340,36 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
                           size="sm"
                           variant="outline"
                           onClick={() => openEditDialog(tournament)}
+                          title="Edit Tournament"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openResultsDialog(tournament)}
-                        >
-                          <Upload className="w-4 h-4" />
-                        </Button>
+                        {tournament.status === 'upcoming' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => openRoomDialog(tournament)}
+                            title="Add Room & Go Live"
+                          >
+                            <Radio className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {(tournament.status === 'live' || tournament.status === 'ongoing') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openResultsDialog(tournament)}
+                            title="Upload Results"
+                          >
+                            <Upload className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => openDeleteDialog(tournament)}
+                          title="Delete Tournament"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -471,6 +541,82 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
             </Button>
             <Button onClick={handleUploadResults} className="bg-green-600 hover:bg-green-700">
               Upload Results
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Room Details & Go Live Dialog */}
+      <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Radio className="w-5 h-5 text-green-500" />
+              Add Room Details & Go Live
+            </DialogTitle>
+            <DialogDescription>
+              Enter the room ID and password. This will make the tournament live.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTournament && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/30 rounded-lg space-y-2">
+                <p className="text-sm font-medium">{selectedTournament.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedTournament.game_type} • {selectedTournament.mode}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Players: {selectedTournament.filled_slots}/{selectedTournament.total_slots}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="room_id" className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Room ID *
+                </Label>
+                <Input
+                  id="room_id"
+                  placeholder="Enter room/lobby ID"
+                  value={roomData.room_id}
+                  onChange={(e) => setRoomData({ ...roomData, room_id: e.target.value })}
+                  className="glass border-border font-mono"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="room_password" className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Room Password *
+                </Label>
+                <Input
+                  id="room_password"
+                  placeholder="Enter room/lobby password"
+                  value={roomData.room_password}
+                  onChange={(e) => setRoomData({ ...roomData, room_password: e.target.value })}
+                  className="glass border-border font-mono"
+                />
+              </div>
+
+              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-xs text-green-500">
+                  ⚡ After saving, the tournament will be marked as <strong>LIVE</strong> and players will see the room details.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoomDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveRoomDetails} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Radio className="w-4 h-4 mr-2" />
+              Save & Go Live
             </Button>
           </DialogFooter>
         </DialogContent>
