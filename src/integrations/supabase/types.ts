@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      deposit_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          depositor_name: string
+          depositor_phone: string
+          id: string
+          status: string
+          transaction_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          depositor_name: string
+          depositor_phone: string
+          id?: string
+          status?: string
+          transaction_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          depositor_name?: string
+          depositor_phone?: string
+          id?: string
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

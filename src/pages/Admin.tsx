@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { WithdrawalManagement } from "@/components/admin/WithdrawalManagement";
+import { DepositManagement } from "@/components/admin/DepositManagement";
 import { TournamentManagement } from "@/components/admin/TournamentManagement";
 import { UserManagement } from "@/components/admin/UserManagement";
 
@@ -17,6 +18,21 @@ interface WithdrawalRequest {
   upi_id: string;
   status: string;
   transaction_id: string | null;
+  admin_notes: string | null;
+  created_at: string;
+  profiles?: {
+    username: string;
+  };
+}
+
+interface DepositRequest {
+  id: string;
+  user_id: string;
+  amount: number;
+  transaction_id: string;
+  depositor_name: string;
+  depositor_phone: string;
+  status: string;
   admin_notes: string | null;
   created_at: string;
   profiles?: {
@@ -51,7 +67,8 @@ const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
+  const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +117,7 @@ const Admin = () => {
   };
 
   const fetchData = async () => {
-    await Promise.all([fetchWithdrawalRequests(), fetchTournaments(), fetchUsers()]);
+    await Promise.all([fetchWithdrawalRequests(), fetchDepositRequests(), fetchTournaments(), fetchUsers()]);
   };
 
   const fetchWithdrawalRequests = async () => {
@@ -133,13 +150,55 @@ const Admin = () => {
             }
           })
         );
-        setRequests(requestsWithProfiles);
+        setWithdrawalRequests(requestsWithProfiles);
       }
     } catch (error) {
       console.error('Error fetching withdrawal requests:', error);
       toast({
         title: "Error",
         description: "Failed to load withdrawal requests",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchDepositRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('deposit_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const requestsWithProfiles = await Promise.all(
+          data.map(async (request) => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('username')
+                .eq('id', request.user_id)
+                .maybeSingle();
+              
+              return {
+                ...request,
+                profiles: profile || { username: 'Unknown' }
+              };
+            } catch (err) {
+              console.error('Error fetching profile for user:', request.user_id, err);
+              return {
+                ...request,
+                profiles: { username: 'Unknown' }
+              };
+            }
+          })
+        );
+        setDepositRequests(requestsWithProfiles);
+      }
+    } catch (error) {
+      console.error('Error fetching deposit requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load deposit requests",
         variant: "destructive",
       });
     }
@@ -219,8 +278,12 @@ const Admin = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <Tabs defaultValue="withdrawals" className="space-y-6">
+        <Tabs defaultValue="deposits" className="space-y-6">
           <TabsList className="glass border-border">
+            <TabsTrigger value="deposits" className="gap-2">
+              <WalletIcon className="w-4 h-4" />
+              Deposits
+            </TabsTrigger>
             <TabsTrigger value="withdrawals" className="gap-2">
               <WalletIcon className="w-4 h-4" />
               Withdrawals
@@ -235,9 +298,16 @@ const Admin = () => {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="deposits">
+            <DepositManagement 
+              requests={depositRequests} 
+              onRefresh={fetchDepositRequests}
+            />
+          </TabsContent>
+
           <TabsContent value="withdrawals">
             <WithdrawalManagement 
-              requests={requests} 
+              requests={withdrawalRequests} 
               onRefresh={fetchWithdrawalRequests}
             />
           </TabsContent>
