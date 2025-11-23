@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,14 +11,30 @@ import {
   Trophy, 
   Target,
   ChevronRight,
-  CreditCard
+  CreditCard,
+  Shield
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user: authUser } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (authUser) {
+      checkAdminRole();
+    }
+  }, [authUser]);
+
+  const checkAdminRole = async () => {
+    if (!authUser) return;
+    const { data } = await supabase
+      .rpc('has_role', { _user_id: authUser.id, _role: 'admin' });
+    setIsAdmin(!!data);
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -151,6 +168,18 @@ const Profile = () => {
             </Button>
           </Link>
         </Card>
+
+        {/* Admin Panel Button */}
+        {isAdmin && (
+          <Card className="glass border-purple-500/30 p-6">
+            <Link to="/admin">
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 transition-all">
+                <Shield className="w-4 h-4 mr-2" />
+                Admin Panel
+              </Button>
+            </Link>
+          </Card>
+        )}
 
         {/* Menu Options */}
         <div className="space-y-2">
