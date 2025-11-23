@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users, QrCode, Upload } from "lucide-react";
+import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users, QrCode, Upload, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { WithdrawalManagement } from "@/components/admin/WithdrawalManagement";
 import { DepositManagement } from "@/components/admin/DepositManagement";
 import { TournamentManagement } from "@/components/admin/TournamentManagement";
 import { UserManagement } from "@/components/admin/UserManagement";
+import { LiveTournamentManagement } from "@/components/admin/LiveTournamentManagement";
 
 interface WithdrawalRequest {
   id: string;
@@ -79,6 +80,7 @@ const Admin = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [liveTournaments, setLiveTournaments] = useState<Tournament[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -188,6 +190,7 @@ const Admin = () => {
       const { data, error } = await supabase
         .from('tournaments')
         .select('*')
+        .neq('status', 'ongoing')
         .order('scheduled_at', { ascending: false });
 
       if (!error && data) {
@@ -201,6 +204,30 @@ const Admin = () => {
       toast({
         title: "Error",
         description: "Failed to load tournaments",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const fetchLiveTournaments = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'ongoing')
+        .order('scheduled_at', { ascending: false });
+
+      if (!error && data) {
+        setLiveTournaments(data.map(t => ({
+          ...t,
+          position_prizes: Array.isArray(t.position_prizes) ? t.position_prizes : []
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching live tournaments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load live tournaments",
         variant: "destructive",
       });
     }
@@ -246,11 +273,12 @@ const Admin = () => {
     await Promise.all([
       fetchWithdrawalRequests(), 
       fetchDepositRequests(), 
-      fetchTournaments(), 
+      fetchTournaments(),
+      fetchLiveTournaments(),
       fetchUsers(), 
       fetchQrCode()
     ]);
-  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchTournaments, fetchUsers, fetchQrCode]);
+  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchTournaments, fetchLiveTournaments, fetchUsers, fetchQrCode]);
 
   const handleQrCodeUpdate = async () => {
     if (!qrCodeUrl.trim()) {
@@ -338,8 +366,12 @@ const Admin = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <Tabs defaultValue="deposits" className="space-y-6">
+        <Tabs defaultValue="live" className="space-y-6">
           <TabsList className="glass border-border">
+            <TabsTrigger value="live" className="gap-2">
+              <Target className="w-4 h-4" />
+              Live Matches
+            </TabsTrigger>
             <TabsTrigger value="deposits" className="gap-2">
               <WalletIcon className="w-4 h-4" />
               Deposits
@@ -361,6 +393,13 @@ const Admin = () => {
               QR Code
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="live">
+            <LiveTournamentManagement 
+              tournaments={liveTournaments}
+              onRefresh={fetchData}
+            />
+          </TabsContent>
 
           <TabsContent value="deposits">
             <DepositManagement 
