@@ -16,6 +16,7 @@ interface WithdrawalRequest {
   user_id: string;
   amount: number;
   upi_id: string;
+  phone_number: string | null;
   status: string;
   transaction_id: string | null;
   admin_notes: string | null;

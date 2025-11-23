@@ -30,6 +30,7 @@ interface WithdrawalRequest {
   user_id: string;
   amount: number;
   upi_id: string;
+  phone_number: string | null;
   status: string;
   transaction_id: string | null;
   admin_notes: string | null;
@@ -133,6 +134,7 @@ export const WithdrawalManagement = ({ requests, onRefresh }: WithdrawalManageme
                   <TableHead>User</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>UPI ID</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Transaction ID</TableHead>
                   <TableHead>Date</TableHead>
@@ -150,6 +152,9 @@ export const WithdrawalManagement = ({ requests, onRefresh }: WithdrawalManageme
                     </TableCell>
                     <TableCell className="font-mono text-sm">
                       {request.upi_id}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {request.phone_number || "-"}
                     </TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell className="font-mono text-sm">

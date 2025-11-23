@@ -208,6 +208,7 @@ export type Database = {
           amount: number
           created_at: string | null
           id: string
+          phone_number: string | null
           status: string
           transaction_id: string | null
           updated_at: string | null
@@ -219,6 +220,7 @@ export type Database = {
           amount: number
           created_at?: string | null
           id?: string
+          phone_number?: string | null
           status?: string
           transaction_id?: string | null
           updated_at?: string | null
@@ -230,6 +232,7 @@ export type Database = {
           amount?: number
           created_at?: string | null
           id?: string
+          phone_number?: string | null
           status?: string
           transaction_id?: string | null
           updated_at?: string | null
