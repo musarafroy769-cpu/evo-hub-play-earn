@@ -111,14 +111,9 @@ const Profile = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <User className="w-6 h-6 text-primary" />
-              <h1 className="text-xl font-bold">Profile</h1>
-            </div>
-            <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-              <Settings className="w-5 h-5" />
-            </Button>
+          <div className="flex items-center gap-3">
+            <User className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-bold">Profile</h1>
           </div>
         </div>
       </header>
