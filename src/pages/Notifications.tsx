@@ -1,9 +1,21 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Trophy, Wallet, AlertCircle, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Bell, Trophy, Wallet, AlertCircle, DollarSign, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
 interface Notification {
@@ -17,8 +29,10 @@ interface Notification {
 
 const Notifications = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -68,6 +82,40 @@ const Notifications = () => {
       }
     } catch (error) {
       console.error('Error marking notifications as read:', error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to clear notifications",
+          variant: "destructive",
+        });
+      } else {
+        setNotifications([]);
+        toast({
+          title: "Success",
+          description: "All notifications cleared",
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear notifications",
+        variant: "destructive",
+      });
+    } finally {
+      setShowClearDialog(false);
     }
   };
 
@@ -133,9 +181,22 @@ const Notifications = () => {
               <Bell className="w-6 h-6 text-primary" />
               <h1 className="text-xl font-bold">Notifications</h1>
             </div>
-            <Badge variant="secondary" className="glass">
-              {notifications.filter((n) => !n.read).length} New
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="glass">
+                {notifications.filter((n) => !n.read).length} New
+              </Badge>
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowClearDialog(true)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -184,6 +245,27 @@ const Notifications = () => {
           </div>
         )}
       </div>
+
+      {/* Clear All Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent className="glass">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Notifications?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all your notifications. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearAll}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Clear All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
