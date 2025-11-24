@@ -1,4 +1,4 @@
-import { Home, Trophy, History, Bell, User } from "lucide-react";
+import { Home, Trophy, History, TrendingUp, User } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { ReactNode } from "react";
 
@@ -10,8 +10,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Trophy, label: "Tournaments", path: "/tournaments" },
+    { icon: TrendingUp, label: "Leaderboard", path: "/leaderboard" },
     { icon: History, label: "History", path: "/history" },
-    { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: User, label: "Profile", path: "/profile" },
   ];
 
