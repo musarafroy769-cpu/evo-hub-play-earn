@@ -5,9 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Target, Award, Crown, Medal, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SkeletonCard } from "@/components/SkeletonCard";
 
 interface PlayerStats {
   user_id: string;
@@ -23,96 +24,43 @@ interface PlayerStats {
 
 const Leaderboard = () => {
   const [players, setPlayers] = useState<PlayerStats[]>([]);
-  const [filteredPlayers, setFilteredPlayers] = useState<PlayerStats[]>([]);
   const [gameFilter, setGameFilter] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"earnings" | "wins" | "kills">("earnings");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, [timeFilter]);
+    fetchLeaderboard(true);
+  }, [timeFilter, gameFilter, sortBy]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [players, gameFilter, sortBy]);
-
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (reset = false) => {
+    if (loading && !reset) return;
+    
     setLoading(true);
     try {
-      // Calculate date filter
-      let dateFilter = "";
-      const now = new Date();
+      const currentPage = reset ? 0 : page;
+      const limit = 20;
       
-      if (timeFilter === "week") {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        dateFilter = weekAgo.toISOString();
-      } else if (timeFilter === "month") {
-        const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        dateFilter = monthAgo.toISOString();
-      }
-
-      // Fetch all tournament results with profiles
-      let query = supabase
-        .from("tournament_results")
-        .select(`
-          user_id,
-          position,
-          kills,
-          prize_amount,
-          created_at,
-          tournament:tournaments!inner(game_type)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (dateFilter) {
-        query = query.gte("created_at", dateFilter);
-      }
-
-      const { data: results, error: resultsError } = await query;
-
-      if (resultsError) throw resultsError;
-
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, username, avatar_url, game_type");
-
-      if (profilesError) throw profilesError;
-
-      // Aggregate stats by user
-      const statsMap = new Map<string, PlayerStats>();
-
-      results?.forEach((result: any) => {
-        const userId = result.user_id;
-        const profile = profiles?.find((p) => p.id === userId);
-        
-        if (!profile) return;
-
-        if (!statsMap.has(userId)) {
-          statsMap.set(userId, {
-            user_id: userId,
-            username: profile.username,
-            avatar_url: profile.avatar_url,
-            game_type: result.tournament.game_type,
-            total_earnings: 0,
-            total_wins: 0,
-            total_kills: 0,
-            matches_played: 0,
-            avg_position: 0,
-          });
-        }
-
-        const stats = statsMap.get(userId)!;
-        stats.total_earnings += result.prize_amount || 0;
-        stats.total_kills += result.kills || 0;
-        stats.matches_played += 1;
-        if (result.position === 1) stats.total_wins += 1;
-        stats.avg_position = (stats.avg_position * (stats.matches_played - 1) + result.position) / stats.matches_played;
+      // Use the optimized database function
+      const { data, error } = await supabase.rpc("get_leaderboard_stats", {
+        p_game_type: gameFilter === "all" ? null : gameFilter,
+        p_time_filter: timeFilter,
+        p_limit: limit,
+        p_offset: currentPage * limit,
       });
 
-      const playerStats = Array.from(statsMap.values());
-      setPlayers(playerStats);
+      if (error) throw error;
+
+      if (reset) {
+        setPlayers(data || []);
+        setPage(0);
+      } else {
+        setPlayers((prev) => [...prev, ...(data || [])]);
+      }
+      
+      setHasMore(data && data.length === limit);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       toast.error("Failed to load leaderboard");
@@ -121,30 +69,28 @@ const Leaderboard = () => {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...players];
-
-    // Game type filter
-    if (gameFilter !== "all") {
-      filtered = filtered.filter((p) => p.game_type === gameFilter);
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      setPage((p) => p + 1);
+      fetchLeaderboard(false);
     }
+  };
 
-    // Sort
-    filtered.sort((a, b) => {
+  // Memoize sorted players to avoid unnecessary recalculations
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => {
       switch (sortBy) {
         case "earnings":
           return b.total_earnings - a.total_earnings;
         case "wins":
-          return b.total_wins - a.total_wins;
+          return Number(b.total_wins) - Number(a.total_wins);
         case "kills":
-          return b.total_kills - a.total_kills;
+          return Number(b.total_kills) - Number(a.total_kills);
         default:
           return 0;
       }
     });
-
-    setFilteredPlayers(filtered);
-  };
+  }, [players, sortBy]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -320,14 +266,14 @@ const Leaderboard = () => {
         </Tabs>
 
         {/* Top 3 Highlight */}
-        {filteredPlayers.length >= 3 && (
+        {sortedPlayers.length >= 3 && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <Crown className="w-4 h-4 text-primary" />
               Top 3 Champions
             </h3>
             <div className="space-y-3">
-              {filteredPlayers.slice(0, 3).map((player, index) => (
+              {sortedPlayers.slice(0, 3).map((player, index) => (
                 <PlayerCard key={player.user_id} player={player} rank={index + 1} />
               ))}
             </div>
@@ -337,20 +283,38 @@ const Leaderboard = () => {
         {/* All Rankings */}
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">All Rankings</h3>
-          {loading ? (
-            <Card className="glass border-border p-8">
-              <p className="text-center text-muted-foreground">Loading leaderboard...</p>
-            </Card>
-          ) : filteredPlayers.length === 0 ? (
+          {loading && players.length === 0 ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          ) : sortedPlayers.length === 0 ? (
             <Card className="glass border-border p-8">
               <p className="text-center text-muted-foreground">No players found</p>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {filteredPlayers.slice(3).map((player, index) => (
-                <PlayerCard key={player.user_id} player={player} rank={index + 4} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3">
+                {sortedPlayers.slice(3).map((player, index) => (
+                  <PlayerCard key={player.user_id} player={player} rank={index + 4} />
+                ))}
+              </div>
+              
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="mt-6 text-center">
+                  <Button
+                    onClick={loadMore}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {loading ? "Loading..." : "Load More"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
