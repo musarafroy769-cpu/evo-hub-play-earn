@@ -113,6 +113,7 @@ export type Database = {
           id: string
           mobile_number: string | null
           updated_at: string | null
+          upi_id: string | null
           username: string
           wallet_balance: number | null
         }
@@ -124,6 +125,7 @@ export type Database = {
           id: string
           mobile_number?: string | null
           updated_at?: string | null
+          upi_id?: string | null
           username: string
           wallet_balance?: number | null
         }
@@ -135,6 +137,7 @@ export type Database = {
           id?: string
           mobile_number?: string | null
           updated_at?: string | null
+          upi_id?: string | null
           username?: string
           wallet_balance?: number | null
         }

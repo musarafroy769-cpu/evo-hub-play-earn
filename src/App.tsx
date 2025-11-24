@@ -15,6 +15,7 @@ import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Withdrawal from "./pages/Withdrawal";
+import Payment from "./pages/Payment";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/withdrawal" element={<ProtectedRoute><Layout><Withdrawal /></Layout></ProtectedRoute>} />
+          <Route path="/payment" element={<ProtectedRoute><Layout><Payment /></Layout></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

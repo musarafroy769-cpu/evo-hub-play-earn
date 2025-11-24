@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Bell, Shield, Globe, Moon } from "lucide-react";
+import { ArrowLeft, Bell, Shield, Globe, Moon, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Settings = () => {
@@ -93,6 +93,14 @@ const Settings = () => {
           <Separator className="mb-4" />
           
           <div className="space-y-3">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => navigate('/payment')}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Payment Methods
+            </Button>
             <Button variant="ghost" className="w-full justify-start">
               Change Password
             </Button>
