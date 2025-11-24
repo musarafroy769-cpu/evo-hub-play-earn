@@ -44,6 +44,7 @@ const Withdrawal = () => {
       fetchWalletBalance();
       fetchWithdrawalRequests();
       fetchDepositRequests();
+      fetchSavedUpiId();
     }
   }, [user]);
 
@@ -58,6 +59,20 @@ const Withdrawal = () => {
 
     if (!error && data) {
       setWalletBalance(Number(data.wallet_balance) || 0);
+    }
+  };
+
+  const fetchSavedUpiId = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('upi_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!error && data && data.upi_id) {
+      setUpiId(data.upi_id);
     }
   };
 
@@ -488,7 +503,17 @@ const Withdrawal = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="upi">UPI ID *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="upi">UPI ID *</Label>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-xs text-primary"
+                      onClick={() => navigate('/payment')}
+                    >
+                      Manage Payment Methods
+                    </Button>
+                  </div>
                   <Input
                     id="upi"
                     type="text"
@@ -497,6 +522,11 @@ const Withdrawal = () => {
                     onChange={(e) => setUpiId(e.target.value)}
                     className="glass border-border"
                   />
+                  {upiId && (
+                    <p className="text-xs text-muted-foreground">
+                      ✓ Using saved UPI ID from payment methods
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
