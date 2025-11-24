@@ -80,6 +80,7 @@ const Admin = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [upcomingTournaments, setUpcomingTournaments] = useState<Tournament[]>([]);
   const [liveTournaments, setLiveTournaments] = useState<Tournament[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -185,6 +186,30 @@ const Admin = () => {
     }
   }, [toast]);
 
+  const fetchUpcomingTournaments = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'upcoming')
+        .order('scheduled_at', { ascending: true });
+
+      if (!error && data) {
+        setUpcomingTournaments(data.map(t => ({
+          ...t,
+          position_prizes: Array.isArray(t.position_prizes) ? t.position_prizes : []
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching upcoming tournaments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load upcoming tournaments",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   const fetchTournaments = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -273,12 +298,13 @@ const Admin = () => {
     await Promise.all([
       fetchWithdrawalRequests(), 
       fetchDepositRequests(), 
+      fetchUpcomingTournaments(),
       fetchTournaments(),
       fetchLiveTournaments(),
       fetchUsers(), 
       fetchQrCode()
     ]);
-  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchTournaments, fetchLiveTournaments, fetchUsers, fetchQrCode]);
+  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchUpcomingTournaments, fetchTournaments, fetchLiveTournaments, fetchUsers, fetchQrCode]);
 
   const handleQrCodeUpdate = async () => {
     if (!qrCodeUrl.trim()) {
@@ -372,6 +398,10 @@ const Admin = () => {
               <Target className="w-4 h-4" />
               Live Matches
             </TabsTrigger>
+            <TabsTrigger value="upcoming" className="gap-2">
+              <Trophy className="w-4 h-4" />
+              Upcoming
+            </TabsTrigger>
             <TabsTrigger value="deposits" className="gap-2">
               <WalletIcon className="w-4 h-4" />
               Deposits
@@ -380,9 +410,9 @@ const Admin = () => {
               <WalletIcon className="w-4 h-4" />
               Withdrawals
             </TabsTrigger>
-            <TabsTrigger value="tournaments" className="gap-2">
+            <TabsTrigger value="history" className="gap-2">
               <Trophy className="w-4 h-4" />
-              Tournaments
+              History
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
@@ -401,6 +431,13 @@ const Admin = () => {
             />
           </TabsContent>
 
+          <TabsContent value="upcoming">
+            <TournamentManagement 
+              tournaments={upcomingTournaments}
+              onRefresh={fetchUpcomingTournaments}
+            />
+          </TabsContent>
+
           <TabsContent value="deposits">
             <DepositManagement 
               requests={depositRequests} 
@@ -415,7 +452,7 @@ const Admin = () => {
             />
           </TabsContent>
 
-          <TabsContent value="tournaments">
+          <TabsContent value="history">
             <TournamentManagement 
               tournaments={tournaments}
               onRefresh={fetchTournaments}
