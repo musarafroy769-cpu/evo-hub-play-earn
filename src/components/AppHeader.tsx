@@ -68,12 +68,14 @@ export const AppHeader = () => {
           filter: `user_id=eq.${user.id}`,
         },
         async () => {
+          console.log('Notification change detected, updating unread count');
           const { count } = await supabase
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id)
             .eq('read', false);
           
+          console.log('New unread count:', count);
           setUnreadCount(count || 0);
         }
       )

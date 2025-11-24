@@ -36,8 +36,7 @@ const Notifications = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchNotifications();
-      markAllAsRead();
+      loadAndMarkNotifications();
       
       // Subscribe to real-time notifications
       const channel = supabase
@@ -62,10 +61,37 @@ const Notifications = () => {
     }
   }, [user?.id]);
 
+  const loadAndMarkNotifications = async () => {
+    await fetchNotifications();
+    await markAllAsRead();
+  };
+
+  const fetchNotifications = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const markAllAsRead = async () => {
     if (!user?.id) return;
     
     try {
+      console.log('Marking all notifications as read for user:', user.id);
+      
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
@@ -75,6 +101,7 @@ const Notifications = () => {
       if (error) {
         console.error('Error marking notifications as read:', error);
       } else {
+        console.log('Successfully marked notifications as read');
         // Update local state
         setNotifications(prev => 
           prev.map(n => ({ ...n, read: true }))
@@ -116,24 +143,6 @@ const Notifications = () => {
       });
     } finally {
       setShowClearDialog(false);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setNotifications(data);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
