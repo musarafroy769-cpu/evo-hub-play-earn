@@ -66,6 +66,7 @@ export const LiveTournamentManagement = ({
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [winners, setWinners] = useState<WinnerEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const openResultsDialog = async (tournament: Tournament) => {
     setSelectedTournament(tournament);
@@ -175,13 +176,19 @@ export const LiveTournamentManagement = ({
 
     setWinners(newWinners);
     
+    const totalPrizes = newWinners.reduce((sum, w) => sum + w.prize_amount, 0);
+    
     toast({
       title: "Prizes Calculated",
-      description: "Prize amounts calculated based on positions and kills",
+      description: `Total: ₹${totalPrizes.toFixed(2)} (Pool: ₹${selectedTournament.prize_pool})`,
     });
   };
 
-  const handleCompleteResults = async () => {
+  const getTotalPrizes = () => {
+    return winners.reduce((sum, w) => sum + w.prize_amount, 0);
+  };
+
+  const validateAndShowConfirmation = () => {
     if (!selectedTournament) return;
 
     if (winners.length === 0) {
@@ -202,6 +209,23 @@ export const LiveTournamentManagement = ({
       return;
     }
 
+    const totalPrizes = getTotalPrizes();
+    if (totalPrizes > selectedTournament.prize_pool) {
+      toast({
+        title: "Prize Pool Exceeded",
+        description: `Total prizes (₹${totalPrizes}) exceed prize pool (₹${selectedTournament.prize_pool})`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowConfirmDialog(true);
+  };
+
+  const handleCompleteResults = async () => {
+    if (!selectedTournament) return;
+
+    setShowConfirmDialog(false);
     setIsProcessing(true);
 
     try {
@@ -247,9 +271,11 @@ export const LiveTournamentManagement = ({
 
       if (statusError) throw statusError;
 
+      const totalDistributed = winners.reduce((sum, w) => sum + w.prize_amount, 0);
+      
       toast({
-        title: "Success",
-        description: "Tournament completed and prizes distributed!",
+        title: "Tournament Completed! 🎉",
+        description: `₹${totalDistributed.toFixed(2)} distributed to ${winners.length} winners`,
       });
 
       setShowResultsDialog(false);
@@ -459,7 +485,18 @@ export const LiveTournamentManagement = ({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex-1 text-left">
+              {winners.length > 0 && (
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Total Distribution:</p>
+                  <p className="text-lg font-bold text-primary">₹{getTotalPrizes().toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Pool: ₹{selectedTournament?.prize_pool}
+                  </p>
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               onClick={() => {
@@ -470,11 +507,52 @@ export const LiveTournamentManagement = ({
               Cancel
             </Button>
             <Button
-              onClick={handleCompleteResults}
+              onClick={validateAndShowConfirmation}
               disabled={isProcessing || winners.length === 0}
               className="bg-gradient-gaming"
             >
-              {isProcessing ? "Processing..." : "Complete Tournament"}
+              Complete & Distribute Prizes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Prize Distribution</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="glass p-4 rounded-lg">
+              <h3 className="font-semibold mb-3">Distribution Summary</h3>
+              <div className="space-y-2">
+                {winners.map((winner, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span>{winner.username} (Pos {winner.position})</span>
+                    <span className="font-semibold text-primary">₹{winner.prize_amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-border mt-3 pt-3">
+                <div className="flex justify-between font-bold">
+                  <span>Total</span>
+                  <span className="text-primary">₹{getTotalPrizes().toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              This will add prizes to winners' wallets and mark the tournament as completed. This action cannot be undone.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCompleteResults} disabled={isProcessing} className="bg-gradient-gaming">
+              {isProcessing ? "Processing..." : "Confirm & Distribute"}
             </Button>
           </DialogFooter>
         </DialogContent>
