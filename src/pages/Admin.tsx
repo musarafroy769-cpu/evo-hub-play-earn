@@ -79,9 +79,14 @@ const Admin = () => {
   const { toast } = useToast();
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [completedTournaments, setCompletedTournaments] = useState<Tournament[]>([]);
   const [upcomingTournaments, setUpcomingTournaments] = useState<Tournament[]>([]);
   const [liveTournaments, setLiveTournaments] = useState<Tournament[]>([]);
+  const [tournamentStats, setTournamentStats] = useState({
+    totalCreated: 0,
+    totalCompleted: 0,
+    totalPrizesDistributed: 0,
+  });
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -210,29 +215,56 @@ const Admin = () => {
     }
   }, [toast]);
 
-  const fetchTournaments = useCallback(async () => {
+  const fetchCompletedTournaments = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('tournaments')
         .select('*')
-        .neq('status', 'ongoing')
+        .eq('status', 'completed')
         .order('scheduled_at', { ascending: false });
 
       if (!error && data) {
-        setTournaments(data.map(t => ({
+        setCompletedTournaments(data.map(t => ({
           ...t,
           position_prizes: Array.isArray(t.position_prizes) ? t.position_prizes : []
         })));
       }
     } catch (error) {
-      console.error('Error fetching tournaments:', error);
+      console.error('Error fetching completed tournaments:', error);
       toast({
         title: "Error",
-        description: "Failed to load tournaments",
+        description: "Failed to load tournament history",
         variant: "destructive",
       });
     }
   }, [toast]);
+
+  const fetchTournamentStats = useCallback(async () => {
+    try {
+      const { count: totalCreated } = await supabase
+        .from('tournaments')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: totalCompleted } = await supabase
+        .from('tournaments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed');
+
+      const { data: resultsData } = await supabase
+        .from('tournament_results')
+        .select('prize_amount');
+
+      const totalPrizes = resultsData?.reduce((sum, r) => sum + (r.prize_amount || 0), 0) || 0;
+
+      setTournamentStats({
+        totalCreated: totalCreated || 0,
+        totalCompleted: totalCompleted || 0,
+        totalPrizesDistributed: totalPrizes,
+      });
+    } catch (error) {
+      console.error('Error fetching tournament stats:', error);
+    }
+  }, []);
 
   const fetchLiveTournaments = useCallback(async () => {
     try {
@@ -299,12 +331,13 @@ const Admin = () => {
       fetchWithdrawalRequests(), 
       fetchDepositRequests(), 
       fetchUpcomingTournaments(),
-      fetchTournaments(),
+      fetchCompletedTournaments(),
       fetchLiveTournaments(),
       fetchUsers(), 
-      fetchQrCode()
+      fetchQrCode(),
+      fetchTournamentStats()
     ]);
-  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchUpcomingTournaments, fetchTournaments, fetchLiveTournaments, fetchUsers, fetchQrCode]);
+  }, [fetchWithdrawalRequests, fetchDepositRequests, fetchUpcomingTournaments, fetchCompletedTournaments, fetchLiveTournaments, fetchUsers, fetchQrCode, fetchTournamentStats]);
 
   const handleQrCodeUpdate = async () => {
     if (!qrCodeUrl.trim()) {
@@ -412,7 +445,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="history" className="gap-2">
               <Trophy className="w-4 h-4" />
-              History
+              Tournament History
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
@@ -453,10 +486,52 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="history">
-            <TournamentManagement 
-              tournaments={tournaments}
-              onRefresh={fetchTournaments}
-            />
+            <div className="space-y-6">
+              {/* Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="glass border-border p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <Trophy className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Tournaments</p>
+                      <p className="text-2xl font-bold">{tournamentStats.totalCreated}</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="glass border-border p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-lg bg-green-500/10">
+                      <Trophy className="w-6 h-6 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Completed</p>
+                      <p className="text-2xl font-bold">{tournamentStats.totalCompleted}</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="glass border-border p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-lg bg-yellow-500/10">
+                      <WalletIcon className="w-6 h-6 text-yellow-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Prizes Distributed</p>
+                      <p className="text-2xl font-bold">₹{tournamentStats.totalPrizesDistributed.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Completed Tournaments Table */}
+              <TournamentManagement 
+                tournaments={completedTournaments}
+                onRefresh={fetchCompletedTournaments}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="users">
