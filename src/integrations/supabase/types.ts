@@ -348,6 +348,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_leaderboard_stats: {
+        Args: {
+          p_game_type?: string
+          p_limit?: number
+          p_offset?: number
+          p_time_filter?: string
+        }
+        Returns: {
+          avatar_url: string
+          avg_position: number
+          game_type: string
+          matches_played: number
+          total_earnings: number
+          total_kills: number
+          total_wins: number
+          user_id: string
+          username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

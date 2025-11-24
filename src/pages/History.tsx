@@ -13,12 +13,13 @@ import {
   Calendar as CalendarIcon,
   Filter
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SkeletonTransactionCard } from "@/components/SkeletonCard";
 
 interface Transaction {
   id: string;
@@ -69,21 +70,23 @@ const History = () => {
     setLoading(true);
 
     try {
-      // Fetch deposits
+      // Fetch deposits with limit
       const { data: deposits } = await supabase
         .from("deposit_requests")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
-      // Fetch withdrawals
+      // Fetch withdrawals with limit
       const { data: withdrawals } = await supabase
         .from("withdrawal_requests")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
-      // Fetch tournament entries
+      // Fetch tournament entries with limit
       const { data: entries } = await supabase
         .from("tournament_participants")
         .select(`
@@ -92,9 +95,10 @@ const History = () => {
           tournament:tournaments(title, entry_fee)
         `)
         .eq("user_id", user.id)
-        .order("joined_at", { ascending: false });
+        .order("joined_at", { ascending: false })
+        .limit(100);
 
-      // Fetch prize winnings
+      // Fetch prize winnings with limit
       const { data: prizes } = await supabase
         .from("tournament_results")
         .select(`
@@ -105,7 +109,8 @@ const History = () => {
         `)
         .eq("user_id", user.id)
         .gt("prize_amount", 0)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       // Combine all transactions
       const allTransactions: Transaction[] = [];
@@ -173,7 +178,7 @@ const History = () => {
     }
   };
 
-  const applyDateFilter = () => {
+  const applyDateFilter = useCallback(() => {
     if (!dateRange.from && !dateRange.to) {
       setFilteredTransactions(transactions);
       return;
@@ -191,9 +196,9 @@ const History = () => {
     });
 
     setFilteredTransactions(filtered);
-  };
+  }, [dateRange, transactions]);
 
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     const headers = ["Date", "Type", "Description", "Amount", "Status", "Reference"];
     const rows = filteredTransactions.map((t) => [
       format(new Date(t.date), "yyyy-MM-dd HH:mm"),
@@ -217,7 +222,7 @@ const History = () => {
     a.click();
     window.URL.revokeObjectURL(url);
     toast.success("Transaction history exported");
-  };
+  }, [filteredTransactions]);
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -378,9 +383,11 @@ const History = () => {
 
           <TabsContent value="all" className="space-y-3">
             {loading ? (
-              <Card className="glass border-border p-8">
-                <p className="text-center text-muted-foreground">Loading transactions...</p>
-              </Card>
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <SkeletonTransactionCard key={i} />
+                ))}
+              </div>
             ) : filteredTransactions.length === 0 ? (
               <Card className="glass border-border p-8">
                 <p className="text-center text-muted-foreground">No transactions found</p>
