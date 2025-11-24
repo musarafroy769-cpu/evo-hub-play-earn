@@ -13,7 +13,9 @@ import {
   ChevronRight,
   CreditCard,
   Shield,
-  Plus
+  Plus,
+  Mail,
+  HelpCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -226,6 +228,29 @@ const Profile = () => {
           <MenuButton icon={Settings} label="Settings" to="/settings" />
           <MenuButton icon={Trophy} label="Leaderboard" to="/leaderboard" />
         </div>
+
+        {/* Help and Support */}
+        <Card className="glass border-border p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <HelpCircle className="w-6 h-6 text-primary" />
+            <h3 className="text-lg font-bold">Help & Support</h3>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Need assistance? Contact our support team
+            </p>
+            <a 
+              href="mailto:evoasrenas59@gmail.com"
+              className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+            >
+              <Mail className="w-5 h-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium">Email Support</p>
+                <p className="text-xs text-primary">evoasrenas59@gmail.com</p>
+              </div>
+            </a>
+          </div>
+        </Card>
 
         {/* Logout */}
         <Button 
