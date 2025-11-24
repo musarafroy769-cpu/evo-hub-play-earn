@@ -23,6 +23,7 @@ const Notifications = () => {
   useEffect(() => {
     if (user?.id) {
       fetchNotifications();
+      markAllAsRead();
       
       // Subscribe to real-time notifications
       const channel = supabase
@@ -46,6 +47,29 @@ const Notifications = () => {
       };
     }
   }, [user?.id]);
+
+  const markAllAsRead = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) {
+        console.error('Error marking notifications as read:', error);
+      } else {
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => ({ ...n, read: true }))
+        );
+      }
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
 
   const fetchNotifications = async () => {
     try {
