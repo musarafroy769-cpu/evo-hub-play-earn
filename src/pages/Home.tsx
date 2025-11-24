@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Trophy, Users, Clock, ChevronRight, Plus } from "lucide-react";
+import { Trophy, Users, Clock, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,7 +26,6 @@ const Home = () => {
   const { user } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [userGameType, setUserGameType] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState(0);
 
   const fetchUserProfile = useCallback(async () => {
     if (!user?.id) return;
@@ -34,13 +33,12 @@ const Home = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('game_type, wallet_balance')
+        .select('game_type')
         .eq('id', user.id)
         .single();
 
       if (!error && data) {
         setUserGameType(data.game_type);
-        setWalletBalance(data.wallet_balance || 0);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -78,70 +76,25 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Header with wallet */}
-      <header className="sticky top-0 z-40 glass border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-gaming bg-clip-text text-transparent">
-                Evo Hub
-              </h1>
-              <p className="text-xs text-muted-foreground">Play • Win • Earn</p>
-            </div>
-            <Link to="/withdrawal?tab=deposit">
-              <div className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-primary/30 hover:border-primary hover:bg-primary/10 transition-all cursor-pointer">
-                <Wallet className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">₹{walletBalance.toFixed(2)}</span>
-                <Plus className="w-3 h-3 text-primary" />
-              </div>
-            </Link>
-          </div>
+      {/* Hero Section */}
+      <section className="relative h-[300px] overflow-hidden">
+        <img 
+          src={heroBanner} 
+          alt="Hero Banner"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        <div className="relative z-10 max-w-lg mx-auto px-4 h-full flex flex-col justify-end pb-8">
+          <h2 className="text-3xl font-bold mb-2 text-white drop-shadow-lg">
+            Join Epic Battles
+          </h2>
+          <p className="text-white/90 text-sm drop-shadow-md">
+            Compete in tournaments and win amazing prizes
+          </p>
         </div>
-      </header>
+      </section>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Quick Deposit Card */}
-        <Link to="/withdrawal?tab=deposit">
-          <Card className="glass border-primary/30 p-4 hover:border-primary hover:shadow-neon-primary transition-all cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/20 rounded-full">
-                  <Plus className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold">Add Money to Wallet</p>
-                  <p className="text-xs text-muted-foreground">Instant deposit via UPI</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-primary" />
-            </div>
-          </Card>
-        </Link>
-
-        {/* Hero Banner */}
-        <div className="relative rounded-2xl overflow-hidden">
-          <img 
-            src={heroBanner} 
-            alt="Evo Hub Tournament" 
-            className="w-full h-48 object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <Badge className="mb-2 bg-primary/20 text-primary border-primary/30">
-              NEW SEASON
-            </Badge>
-            <h2 className="text-2xl font-bold mb-2">Weekend Warriors</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Join the biggest tournaments this weekend
-            </p>
-            <Button className="bg-gradient-gaming hover:shadow-neon-primary transition-all">
-              Join Now
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-
-
         {/* Featured Tournaments */}
         <div>
           <div className="flex items-center justify-between mb-4">

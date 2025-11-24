@@ -1,6 +1,7 @@
 import { Home, Trophy, History, TrendingUp, User } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { ReactNode } from "react";
+import { AppHeader } from "./AppHeader";
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,6 +20,9 @@ export const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background pb-20">
       {/* Gradient glow effect at top */}
       <div className="fixed top-0 left-0 right-0 h-40 bg-gradient-glow pointer-events-none z-0" />
+      
+      {/* Header with wallet and notifications */}
+      <AppHeader />
       
       {/* Main content */}
       <main className="relative z-10">
