@@ -5,7 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users, QrCode, Upload, Target } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Shield, Wallet as WalletIcon, Trophy, Users, QrCode, Upload, Target, Settings as SettingsIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +101,25 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [uploadingQr, setUploadingQr] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [visibleTabs, setVisibleTabs] = useState({
+    live: true,
+    upcoming: true,
+    history: true,
+    qrCode: true,
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('admin-visible-tabs');
+    if (saved) {
+      setVisibleTabs(JSON.parse(saved));
+    }
+  }, []);
+
+  const saveTabSettings = (newSettings: typeof visibleTabs) => {
+    setVisibleTabs(newSettings);
+    localStorage.setItem('admin-visible-tabs', JSON.stringify(newSettings));
+  };
 
   const checkAdminRole = async () => {
     if (!user) return;
@@ -409,32 +437,46 @@ const Admin = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/")}
+                className="hover:bg-primary/10"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <Shield className="w-6 h-6 text-primary" />
+              <h1 className="text-xl font-bold">Admin Panel</h1>
+            </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              onClick={() => navigate("/")}
+              onClick={() => setShowSettingsDialog(true)}
               className="hover:bg-primary/10"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <SettingsIcon className="w-5 h-5" />
             </Button>
-            <Shield className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold">Admin Panel</h1>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <Tabs defaultValue="live" className="space-y-6">
+        <Tabs defaultValue={visibleTabs.live ? "live" : visibleTabs.upcoming ? "upcoming" : "deposits"} className="space-y-6">
           <TabsList className="glass border-border">
-            <TabsTrigger value="live" className="gap-2">
-              <Target className="w-4 h-4" />
-              Live Matches
-            </TabsTrigger>
-            <TabsTrigger value="upcoming" className="gap-2">
-              <Trophy className="w-4 h-4" />
-              Upcoming
-            </TabsTrigger>
+            {visibleTabs.live && (
+              <TabsTrigger value="live" className="gap-2">
+                <Target className="w-4 h-4" />
+                Live Matches
+              </TabsTrigger>
+            )}
+            {visibleTabs.upcoming && (
+              <TabsTrigger value="upcoming" className="gap-2">
+                <Trophy className="w-4 h-4" />
+                Upcoming
+              </TabsTrigger>
+            )}
             <TabsTrigger value="deposits" className="gap-2">
               <WalletIcon className="w-4 h-4" />
               Deposits
@@ -443,33 +485,41 @@ const Admin = () => {
               <WalletIcon className="w-4 h-4" />
               Withdrawals
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2">
-              <Trophy className="w-4 h-4" />
-              Tournament History
-            </TabsTrigger>
+            {visibleTabs.history && (
+              <TabsTrigger value="history" className="gap-2">
+                <Trophy className="w-4 h-4" />
+                Tournament History
+              </TabsTrigger>
+            )}
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
               User Management
             </TabsTrigger>
-            <TabsTrigger value="qr-code" className="gap-2">
-              <QrCode className="w-4 h-4" />
-              QR Code
-            </TabsTrigger>
+            {visibleTabs.qrCode && (
+              <TabsTrigger value="qr-code" className="gap-2">
+                <QrCode className="w-4 h-4" />
+                QR Code
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          <TabsContent value="live">
-            <LiveTournamentManagement 
-              tournaments={liveTournaments}
-              onRefresh={fetchData}
-            />
-          </TabsContent>
+          {visibleTabs.live && (
+            <TabsContent value="live">
+              <LiveTournamentManagement 
+                tournaments={liveTournaments}
+                onRefresh={fetchData}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="upcoming">
-            <TournamentManagement 
-              tournaments={upcomingTournaments}
-              onRefresh={fetchUpcomingTournaments}
-            />
-          </TabsContent>
+          {visibleTabs.upcoming && (
+            <TabsContent value="upcoming">
+              <TournamentManagement 
+                tournaments={upcomingTournaments}
+                onRefresh={fetchUpcomingTournaments}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="deposits">
             <DepositManagement 
@@ -485,54 +535,56 @@ const Admin = () => {
             />
           </TabsContent>
 
-          <TabsContent value="history">
-            <div className="space-y-6">
-              {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="glass border-border p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <Trophy className="w-6 h-6 text-primary" />
+          {visibleTabs.history && (
+            <TabsContent value="history">
+              <div className="space-y-6">
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="glass border-border p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <Trophy className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Tournaments</p>
+                        <p className="text-2xl font-bold">{tournamentStats.totalCreated}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Tournaments</p>
-                      <p className="text-2xl font-bold">{tournamentStats.totalCreated}</p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
 
-                <Card className="glass border-border p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-green-500/10">
-                      <Trophy className="w-6 h-6 text-green-500" />
+                  <Card className="glass border-border p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-green-500/10">
+                        <Trophy className="w-6 h-6 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Completed</p>
+                        <p className="text-2xl font-bold">{tournamentStats.totalCompleted}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Completed</p>
-                      <p className="text-2xl font-bold">{tournamentStats.totalCompleted}</p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
 
-                <Card className="glass border-border p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-yellow-500/10">
-                      <WalletIcon className="w-6 h-6 text-yellow-500" />
+                  <Card className="glass border-border p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-lg bg-yellow-500/10">
+                        <WalletIcon className="w-6 h-6 text-yellow-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Prizes Distributed</p>
+                        <p className="text-2xl font-bold">₹{tournamentStats.totalPrizesDistributed.toFixed(2)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Prizes Distributed</p>
-                      <p className="text-2xl font-bold">₹{tournamentStats.totalPrizesDistributed.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                </div>
+
+                {/* Completed Tournaments Table */}
+                <TournamentManagement 
+                  tournaments={completedTournaments}
+                  onRefresh={fetchCompletedTournaments}
+                />
               </div>
-
-              {/* Completed Tournaments Table */}
-              <TournamentManagement 
-                tournaments={completedTournaments}
-                onRefresh={fetchCompletedTournaments}
-              />
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           <TabsContent value="users">
             <UserManagement 
@@ -541,56 +593,128 @@ const Admin = () => {
             />
           </TabsContent>
 
-          <TabsContent value="qr-code">
-            <Card className="glass border-border p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <QrCode className="w-6 h-6 text-primary" />
-                <h2 className="text-xl font-bold">Deposit QR Code</h2>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="qr-url">QR Code Image URL</Label>
-                  <Input
-                    id="qr-url"
-                    type="url"
-                    placeholder="https://example.com/qr-code.png"
-                    value={qrCodeUrl}
-                    onChange={(e) => setQrCodeUrl(e.target.value)}
-                    className="glass mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload your QR code image to a hosting service and paste the URL here
-                  </p>
+          {visibleTabs.qrCode && (
+            <TabsContent value="qr-code">
+              <Card className="glass border-border p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <QrCode className="w-6 h-6 text-primary" />
+                  <h2 className="text-xl font-bold">Deposit QR Code</h2>
                 </div>
 
-                {qrCodeUrl && (
-                  <div className="border border-border rounded-lg p-4 glass">
-                    <p className="text-sm text-muted-foreground mb-2">Preview:</p>
-                    <img 
-                      src={qrCodeUrl} 
-                      alt="QR Code Preview" 
-                      className="max-w-xs mx-auto rounded-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="qr-url">QR Code Image URL</Label>
+                    <Input
+                      id="qr-url"
+                      type="url"
+                      placeholder="https://example.com/qr-code.png"
+                      value={qrCodeUrl}
+                      onChange={(e) => setQrCodeUrl(e.target.value)}
+                      className="glass mt-2"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload your QR code image to a hosting service and paste the URL here
+                    </p>
                   </div>
-                )}
 
-                <Button 
-                  onClick={handleQrCodeUpdate}
-                  disabled={uploadingQr}
-                  className="w-full"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {uploadingQr ? "Updating..." : "Update QR Code"}
-                </Button>
-              </div>
-            </Card>
-          </TabsContent>
+                  {qrCodeUrl && (
+                    <div className="border border-border rounded-lg p-4 glass">
+                      <p className="text-sm text-muted-foreground mb-2">Preview:</p>
+                      <img 
+                        src={qrCodeUrl} 
+                        alt="QR Code Preview" 
+                        className="max-w-xs mx-auto rounded-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleQrCodeUpdate}
+                    disabled={uploadingQr}
+                    className="w-full bg-gradient-gaming"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploadingQr ? "Updating..." : "Update QR Code"}
+                  </Button>
+                </div>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
+
+      {/* Tab Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>Customize Admin Tabs</DialogTitle>
+            <DialogDescription>
+              Select which sections you want to display. Deposits, Withdrawals, and User Management are always visible.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="live"
+                checked={visibleTabs.live}
+                onCheckedChange={(checked) => 
+                  saveTabSettings({ ...visibleTabs, live: checked as boolean })
+                }
+              />
+              <Label htmlFor="live" className="cursor-pointer">Live Matches</Label>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="upcoming"
+                checked={visibleTabs.upcoming}
+                onCheckedChange={(checked) => 
+                  saveTabSettings({ ...visibleTabs, upcoming: checked as boolean })
+                }
+              />
+              <Label htmlFor="upcoming" className="cursor-pointer">Upcoming Tournaments</Label>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="history"
+                checked={visibleTabs.history}
+                onCheckedChange={(checked) => 
+                  saveTabSettings({ ...visibleTabs, history: checked as boolean })
+                }
+              />
+              <Label htmlFor="history" className="cursor-pointer">Tournament History</Label>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="qrCode"
+                checked={visibleTabs.qrCode}
+                onCheckedChange={(checked) => 
+                  saveTabSettings({ ...visibleTabs, qrCode: checked as boolean })
+                }
+              />
+              <Label htmlFor="qrCode" className="cursor-pointer">QR Code Management</Label>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                <strong>Always Visible:</strong> Deposits, Withdrawals, User Management
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowSettingsDialog(false)} className="bg-gradient-gaming">
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
