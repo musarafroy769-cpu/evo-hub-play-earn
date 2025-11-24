@@ -109,27 +109,16 @@ const Tournaments = () => {
     if (!user?.id) return;
 
     try {
-      // Get tournaments where user is a participant and status is ongoing
-      const { data: participantData, error: participantError } = await supabase
-        .from('tournament_participants')
-        .select('tournament_id')
-        .eq('user_id', user.id);
+      // Fetch all live tournaments regardless of participation
+      const { data: tournamentsData, error: tournamentsError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'ongoing')
+        .order('scheduled_at', { ascending: false });
 
-      if (participantError) throw participantError;
+      if (tournamentsError) throw tournamentsError;
 
-      if (participantData && participantData.length > 0) {
-        const tournamentIds = participantData.map(p => p.tournament_id);
-
-        const { data: tournamentsData, error: tournamentsError } = await supabase
-          .from('tournaments')
-          .select('*')
-          .eq('status', 'ongoing')
-          .in('id', tournamentIds);
-
-        if (tournamentsError) throw tournamentsError;
-
-        setLiveTournaments(tournamentsData || []);
-      }
+      setLiveTournaments(tournamentsData || []);
     } catch (error) {
       console.error('Error fetching live tournaments:', error);
     }
