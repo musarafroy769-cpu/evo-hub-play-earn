@@ -32,6 +32,7 @@ const Leaderboard = () => {
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
+    console.log('Leaderboard filters changed:', { timeFilter, gameFilter, sortBy });
     fetchLeaderboard(true);
   }, [timeFilter, gameFilter, sortBy]);
 
@@ -43,27 +44,105 @@ const Leaderboard = () => {
       const currentPage = reset ? 0 : page;
       const limit = 20;
       
-      // Use the optimized database function
-      const { data, error } = await supabase.rpc("get_leaderboard_stats", {
+      console.log('Fetching leaderboard with:', {
+        gameFilter,
+        timeFilter,
+        limit,
+        offset: currentPage * limit
+      });
+      
+      // Try RPC function first
+      const { data: rpcData, error: rpcError } = await supabase.rpc("get_leaderboard_stats", {
         p_game_type: gameFilter === "all" ? null : gameFilter,
         p_time_filter: timeFilter,
         p_limit: limit,
         p_offset: currentPage * limit,
       });
 
-      if (error) throw error;
+      console.log('Leaderboard RPC data:', rpcData);
+      console.log('Leaderboard RPC error:', rpcError);
+
+      let finalData = rpcData;
+
+      // Fallback to direct query if RPC fails
+      if (rpcError || !rpcData || rpcData.length === 0) {
+        console.log('Using fallback query...');
+        
+        let query = supabase
+          .from('tournament_results')
+          .select(`
+            user_id,
+            position,
+            kills,
+            prize_amount,
+            tournaments!inner(game_type),
+            profiles!inner(username, avatar_url)
+          `);
+
+        if (gameFilter !== "all") {
+          query = query.eq('tournaments.game_type', gameFilter);
+        }
+
+        const { data: rawData, error: queryError } = await query;
+
+        if (queryError) throw queryError;
+
+        console.log('Fallback raw data:', rawData);
+
+        // Process the data
+        const playerMap = new Map<string, PlayerStats>();
+        
+        rawData?.forEach((result: any) => {
+          const userId = result.user_id;
+          if (!playerMap.has(userId)) {
+            playerMap.set(userId, {
+              user_id: userId,
+              username: result.profiles.username,
+              avatar_url: result.profiles.avatar_url,
+              game_type: result.tournaments.game_type,
+              total_earnings: 0,
+              total_wins: 0,
+              total_kills: 0,
+              matches_played: 0,
+              avg_position: 0
+            });
+          }
+
+          const stats = playerMap.get(userId)!;
+          stats.matches_played += 1;
+          stats.total_earnings += result.prize_amount || 0;
+          stats.total_kills += result.kills || 0;
+          if (result.position === 1) stats.total_wins += 1;
+        });
+
+        // Calculate averages
+        playerMap.forEach((stats) => {
+          if (stats.matches_played > 0) {
+            // Calculate average position from all results
+            const userResults = rawData?.filter((r: any) => r.user_id === stats.user_id) || [];
+            const totalPositions = userResults.reduce((sum: number, r: any) => sum + r.position, 0);
+            stats.avg_position = totalPositions / stats.matches_played;
+          }
+        });
+
+        finalData = Array.from(playerMap.values())
+          .sort((a, b) => b.total_earnings - a.total_earnings)
+          .slice(currentPage * limit, (currentPage + 1) * limit);
+
+        console.log('Processed fallback data:', finalData);
+      }
 
       if (reset) {
-        setPlayers(data || []);
+        setPlayers(finalData || []);
         setPage(0);
       } else {
-        setPlayers((prev) => [...prev, ...(data || [])]);
+        setPlayers((prev) => [...prev, ...(finalData || [])]);
       }
       
-      setHasMore(data && data.length === limit);
-    } catch (error) {
+      setHasMore(finalData && finalData.length === limit);
+    } catch (error: any) {
       console.error("Error fetching leaderboard:", error);
-      toast.error("Failed to load leaderboard");
+      toast.error("Failed to load leaderboard: " + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
