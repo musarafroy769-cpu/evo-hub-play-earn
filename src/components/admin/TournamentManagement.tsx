@@ -156,6 +156,20 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
       return;
     }
 
+    // Validate date is not too far in the future
+    const scheduledDate = new Date(formData.scheduled_at);
+    const maxDate = new Date('2100-12-31');
+    const minDate = new Date();
+    
+    if (scheduledDate > maxDate || scheduledDate < minDate) {
+      toast({
+        title: "Invalid Date",
+        description: "Please select a valid date between now and year 2100",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const tournamentData = {
       title: formData.title,
       game_type: formData.game_type,
@@ -338,6 +352,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
                   <TableHead>Mode</TableHead>
                   <TableHead>Entry Fee</TableHead>
                   <TableHead>Prize Pool</TableHead>
+                  <TableHead>Per Kill</TableHead>
                   <TableHead>Slots</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -351,6 +366,7 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
                     <TableCell>{tournament.mode}</TableCell>
                     <TableCell className="text-primary">₹{tournament.entry_fee}</TableCell>
                     <TableCell className="font-bold">₹{tournament.prize_pool}</TableCell>
+                    <TableCell className="text-green-500">₹{tournament.per_kill_prize || 0}</TableCell>
                     <TableCell>
                       {tournament.filled_slots}/{tournament.total_slots}
                     </TableCell>
@@ -504,6 +520,8 @@ export const TournamentManagement = ({ tournaments, onRefresh }: TournamentManag
                   type="datetime-local"
                   value={formData.scheduled_at}
                   onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
+                  min={new Date().toISOString().slice(0, 16)}
+                  max="2100-12-31T23:59"
                   className="glass border-border"
                 />
             </div>

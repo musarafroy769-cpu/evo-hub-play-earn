@@ -16,6 +16,7 @@ interface Tournament {
   game_type: string;
   entry_fee: number;
   prize_pool: number;
+  per_kill_prize: number;
   total_slots: number;
   filled_slots: number;
   scheduled_at: string;
@@ -148,6 +149,14 @@ const Home = () => {
                           <p className="text-lg font-bold">{tournament.entry_fee === 0 ? "Free" : `₹${tournament.entry_fee}`}</p>
                         </div>
                       </div>
+
+                      {tournament.per_kill_prize > 0 && (
+                        <div className="mb-4 p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                          <p className="text-xs text-green-500 font-medium">
+                            💰 Kill Bonus: ₹{tournament.per_kill_prize} per kill
+                          </p>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-sm">
