@@ -26,11 +26,16 @@ const Profile = () => {
   const { signOut, user: authUser } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [stats, setStats] = useState({
+    matches: 0,
+    wins: 0,
+    earned: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authUser) {
-      Promise.all([checkAdminRole(), fetchProfile()]).catch(console.error);
+      Promise.all([checkAdminRole(), fetchProfile(), fetchUserStats()]).catch(console.error);
     } else {
       setLoading(false);
     }
@@ -66,6 +71,37 @@ const Profile = () => {
       console.error('Error in fetchProfile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserStats = async () => {
+    if (!authUser) return;
+
+    try {
+      // Fetch tournament results for this user
+      const { data: results, error } = await supabase
+        .from('tournament_results')
+        .select('position, prize_amount')
+        .eq('user_id', authUser.id);
+
+      if (error) {
+        console.error('Error fetching stats:', error);
+        return;
+      }
+
+      if (results && results.length > 0) {
+        const matches = results.length;
+        const wins = results.filter(r => r.position === 1).length;
+        const earned = results.reduce((sum, r) => sum + (r.prize_amount || 0), 0);
+
+        setStats({
+          matches,
+          wins,
+          earned
+        });
+      }
+    } catch (error) {
+      console.error('Error in fetchUserStats:', error);
     }
   };
 
@@ -140,17 +176,17 @@ const Profile = () => {
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-3 rounded-lg bg-muted/30">
               <Trophy className="w-5 h-5 mx-auto mb-1 text-primary" />
-              <p className="text-lg font-bold">0</p>
+              <p className="text-lg font-bold">{stats.matches}</p>
               <p className="text-xs text-muted-foreground">Matches</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted/30">
               <Target className="w-5 h-5 mx-auto mb-1 text-secondary" />
-              <p className="text-lg font-bold">0</p>
+              <p className="text-lg font-bold">{stats.wins}</p>
               <p className="text-xs text-muted-foreground">Wins</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted/30">
               <Wallet className="w-5 h-5 mx-auto mb-1 text-accent" />
-              <p className="text-lg font-bold">₹0</p>
+              <p className="text-lg font-bold">₹{stats.earned.toFixed(0)}</p>
               <p className="text-xs text-muted-foreground">Earned</p>
             </div>
           </div>
