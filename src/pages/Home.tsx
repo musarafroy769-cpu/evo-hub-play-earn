@@ -47,16 +47,20 @@ const Home = () => {
   }, [user?.id]);
 
   const fetchTournaments = useCallback(async () => {
-    if (!userGameType) return;
-    
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tournaments')
         .select('id, title, game_type, entry_fee, prize_pool, per_kill_prize, total_slots, filled_slots, scheduled_at, image_url')
         .eq('status', 'upcoming')
-        .eq('game_type', userGameType)
         .order('scheduled_at', { ascending: true })
         .limit(2);
+
+      // Only filter by game type if user has one set
+      if (userGameType) {
+        query = query.eq('game_type', userGameType);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data) {
         setTournaments(data);
@@ -69,14 +73,9 @@ const Home = () => {
   useEffect(() => {
     if (user?.id) {
       fetchUserProfile();
-    }
-  }, [user?.id, fetchUserProfile]);
-
-  useEffect(() => {
-    if (userGameType) {
       fetchTournaments();
     }
-  }, [userGameType, fetchTournaments]);
+  }, [user?.id, fetchUserProfile, fetchTournaments]);
 
   return (
     <div className="min-h-screen">
