@@ -46,6 +46,7 @@ interface LiveTournamentManagementProps {
 interface Participant {
   user_id: string;
   username: string;
+  game_uid: string | null;
 }
 
 interface WinnerEntry {
@@ -88,14 +89,15 @@ export const LiveTournamentManagement = ({
 
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, username')
+          .select('id, username, game_uid')
           .in('id', userIds);
 
         if (profilesError) throw profilesError;
 
         const formattedParticipants = profilesData?.map(p => ({
           user_id: p.id,
-          username: p.username
+          username: p.username,
+          game_uid: p.game_uid
         })) || [];
 
         setParticipants(formattedParticipants);
@@ -427,16 +429,16 @@ export const LiveTournamentManagement = ({
                         />
                       </div>
                       <div className="col-span-4">
-                        <Label className="text-xs">Player</Label>
+                        <Label className="text-xs">Player (UID)</Label>
                         <select
-                          className="w-full h-10 px-3 rounded-md glass border-border bg-background text-foreground"
+                          className="w-full h-10 px-3 rounded-md glass border-border bg-background text-foreground text-sm"
                           value={winner.user_id}
                           onChange={(e) => updateWinner(index, 'user_id', e.target.value)}
                         >
                           <option value="">Select Player</option>
                           {participants.map((p) => (
                             <option key={p.user_id} value={p.user_id}>
-                              {p.username}
+                              {p.username} {p.game_uid ? `(UID: ${p.game_uid})` : ''}
                             </option>
                           ))}
                         </select>
@@ -444,19 +446,27 @@ export const LiveTournamentManagement = ({
                       <div className="col-span-2">
                         <Label className="text-xs">Kills</Label>
                         <Input
-                          type="number"
-                          min="0"
-                          value={winner.kills}
-                          onChange={(e) => updateWinner(index, 'kills', parseInt(e.target.value) || 0)}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={winner.kills.toString()}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            updateWinner(index, 'kills', parseInt(val) || 0);
+                          }}
                           className="glass"
                         />
                       </div>
                       <div className="col-span-3">
                         <Label className="text-xs">Prize Amount (₹)</Label>
                         <Input
-                          type="number"
-                          value={winner.prize_amount}
-                          onChange={(e) => updateWinner(index, 'prize_amount', parseFloat(e.target.value) || 0)}
+                          type="text"
+                          inputMode="decimal"
+                          value={winner.prize_amount.toString()}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                            updateWinner(index, 'prize_amount', parseFloat(val) || 0);
+                          }}
                           className="glass"
                         />
                       </div>
