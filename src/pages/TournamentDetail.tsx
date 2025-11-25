@@ -121,10 +121,19 @@ const TournamentDetail = () => {
       return;
     }
 
-    if (walletBalance < tournament.entry_fee) {
+    // Fetch fresh wallet balance before deducting
+    const { data: freshProfile } = await supabase
+      .from('profiles')
+      .select('wallet_balance')
+      .eq('id', user.id)
+      .single();
+
+    const currentBalance = freshProfile?.wallet_balance || 0;
+
+    if (currentBalance < tournament.entry_fee) {
       toast({
         title: "Insufficient Balance",
-        description: "Please add funds to your wallet",
+        description: `Your balance: ₹${currentBalance}. Entry fee: ₹${tournament.entry_fee}`,
         variant: "destructive",
       });
       return;
@@ -132,14 +141,17 @@ const TournamentDetail = () => {
 
     setJoining(true);
     try {
-      // Deduct entry fee from wallet
-      const newBalance = walletBalance - tournament.entry_fee;
+      // Deduct entry fee from wallet with fresh balance
+      const newBalance = currentBalance - tournament.entry_fee;
       const { error: walletError } = await supabase
         .from('profiles')
         .update({ wallet_balance: newBalance })
         .eq('id', user.id);
 
-      if (walletError) throw walletError;
+      if (walletError) {
+        console.error('Wallet error:', walletError);
+        throw new Error('Failed to deduct entry fee');
+      }
 
       // Add participant
       const { error: participantError } = await supabase
@@ -149,7 +161,14 @@ const TournamentDetail = () => {
           user_id: user.id,
         });
 
-      if (participantError) throw participantError;
+      if (participantError) {
+        // Rollback wallet deduction
+        await supabase
+          .from('profiles')
+          .update({ wallet_balance: currentBalance })
+          .eq('id', user.id);
+        throw new Error('Failed to join tournament');
+      }
 
       // Update filled slots
       const { error: tournamentError } = await supabase
@@ -157,21 +176,23 @@ const TournamentDetail = () => {
         .update({ filled_slots: tournament.filled_slots + 1 })
         .eq('id', tournament.id);
 
-      if (tournamentError) throw tournamentError;
+      if (tournamentError) {
+        console.error('Tournament update error:', tournamentError);
+      }
 
       toast({
         title: "Success!",
-        description: "You have joined the tournament",
+        description: `Joined tournament! ₹${tournament.entry_fee} deducted from wallet`,
       });
 
       setHasJoined(true);
       setWalletBalance(newBalance);
       setTournament({ ...tournament, filled_slots: tournament.filled_slots + 1 });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error joining tournament:', error);
       toast({
         title: "Error",
-        description: "Failed to join tournament",
+        description: error.message || "Failed to join tournament",
         variant: "destructive",
       });
     } finally {
