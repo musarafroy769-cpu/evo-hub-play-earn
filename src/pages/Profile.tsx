@@ -156,29 +156,6 @@ const Profile = () => {
           </div>
         </Card>
 
-        {/* Game UIDs */}
-        <Card className="glass border-border p-6">
-          <h3 className="text-lg font-bold mb-4">Game IDs</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-              <div>
-                <p className="text-sm font-medium">{profile?.game_type || 'Game'} UID</p>
-                <p className="text-xs text-muted-foreground mt-1">{profile?.game_uid || 'Not set'}</p>
-              </div>
-              <Button variant="ghost" size="sm">Edit</Button>
-            </div>
-            {profile?.mobile_number && (
-              <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
-                <div>
-                  <p className="text-sm font-medium">Mobile Number</p>
-                  <p className="text-xs text-muted-foreground mt-1">{profile.mobile_number}</p>
-                </div>
-                <Button variant="ghost" size="sm">Edit</Button>
-              </div>
-            )}
-          </div>
-        </Card>
-
         {/* Wallet */}
         <Card className="glass border-border p-6">
           <div className="flex items-center justify-between mb-4">
