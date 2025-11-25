@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ interface Tournament {
   mode: string;
   entry_fee: number;
   prize_pool: number;
+  per_kill_prize: number;
   total_slots: number;
   filled_slots: number;
   scheduled_at: string;
@@ -34,6 +35,76 @@ const Tournaments = () => {
   const [userGameType, setUserGameType] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const fetchUserProfile = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('game_type')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setUserGameType(data.game_type);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  }, [user]);
+
+  const fetchTournaments = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'upcoming')
+        .order('scheduled_at', { ascending: true });
+
+      if (error) throw error;
+
+      setTournaments(data || []);
+    } catch (error) {
+      console.error('Error fetching tournaments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tournaments",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  const fetchLiveTournaments = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      // Fetch all live tournaments regardless of participation
+      const { data: tournamentsData, error: tournamentsError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'ongoing')
+        .order('scheduled_at', { ascending: false });
+
+      if (tournamentsError) throw tournamentsError;
+
+      setLiveTournaments(tournamentsData || []);
+    } catch (error) {
+      console.error('Error fetching live tournaments:', error);
+    }
+  }, [user?.id]);
+
+  const copyToClipboard = useCallback((text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast({
+      title: "Copied!",
+      description: `${field} copied to clipboard`,
+    });
+    setTimeout(() => setCopiedField(null), 2000);
+  }, [toast]);
 
   useEffect(() => {
     if (user) {
@@ -62,84 +133,14 @@ const Tournaments = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user]);
-
-  const fetchUserProfile = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('game_type')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!error && data) {
-        setUserGameType(data.game_type);
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
-
-  const fetchTournaments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('status', 'upcoming')
-        .order('scheduled_at', { ascending: true });
-
-      if (error) throw error;
-
-      setTournaments(data || []);
-    } catch (error) {
-      console.error('Error fetching tournaments:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load tournaments",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchLiveTournaments = async () => {
-    if (!user?.id) return;
-
-    try {
-      // Fetch all live tournaments regardless of participation
-      const { data: tournamentsData, error: tournamentsError } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('status', 'ongoing')
-        .order('scheduled_at', { ascending: false });
-
-      if (tournamentsError) throw tournamentsError;
-
-      setLiveTournaments(tournamentsData || []);
-    } catch (error) {
-      console.error('Error fetching live tournaments:', error);
-    }
-  };
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    toast({
-      title: "Copied!",
-      description: `${field} copied to clipboard`,
-    });
-    setTimeout(() => setCopiedField(null), 2000);
-  };
+  }, [user, fetchUserProfile, fetchTournaments, fetchLiveTournaments]);
 
   // Filter tournaments based on user's game type
   const filteredTournaments = userGameType
     ? tournaments.filter(t => t.game_type.toUpperCase() === userGameType.toUpperCase())
     : tournaments;
 
-  const LiveTournamentCard = ({ tournament }: { tournament: Tournament }) => {
+  const LiveTournamentCard = memo(({ tournament }: { tournament: Tournament }) => {
     const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
     
     return (
@@ -217,8 +218,8 @@ const Tournaments = () => {
               <p className="text-base font-bold text-primary">₹{tournament.prize_pool}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Mode</p>
-              <p className="text-base font-bold">{tournament.mode}</p>
+              <p className="text-xs text-muted-foreground">Per Kill Prize</p>
+              <p className="text-base font-bold text-green-500">₹{tournament.per_kill_prize || 0}</p>
             </div>
           </div>
 
@@ -233,9 +234,9 @@ const Tournaments = () => {
         </div>
       </Card>
     );
-  };
+  });
 
-  const TournamentCard = ({ tournament }: { tournament: Tournament }) => {
+  const TournamentCard = memo(({ tournament }: { tournament: Tournament }) => {
     const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
     
     return (
@@ -278,6 +279,14 @@ const Tournaments = () => {
               </div>
             </div>
 
+            {tournament.per_kill_prize > 0 && (
+              <div className="mb-4 p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-xs text-green-500 font-medium">
+                  💰 Per Kill Bonus: ₹{tournament.per_kill_prize}
+                </p>
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-sm mb-4">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
@@ -296,7 +305,7 @@ const Tournaments = () => {
         </Card>
       </Link>
     );
-  };
+  });
 
   return (
     <div className="min-h-screen">
