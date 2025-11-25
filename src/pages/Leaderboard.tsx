@@ -238,9 +238,7 @@ const Leaderboard = () => {
                 <SelectContent>
                   <SelectItem value="all">All Games</SelectItem>
                   <SelectItem value="BGMI">BGMI</SelectItem>
-                  <SelectItem value="Free Fire">Free Fire</SelectItem>
-                  <SelectItem value="PUBG Mobile">PUBG Mobile</SelectItem>
-                  <SelectItem value="Call of Duty Mobile">Call of Duty Mobile</SelectItem>
+                  <SelectItem value="FF">Free Fire</SelectItem>
                 </SelectContent>
               </Select>
             </div>
