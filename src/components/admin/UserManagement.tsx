@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Search, Wallet } from "lucide-react";
+import { Plus, Search, Wallet, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,7 +34,8 @@ export const UserManagement = ({ users, onRefresh }: UserManagementProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [amount, setAmount] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDecreaseDialogOpen, setIsDecreaseDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const filteredUsers = users.filter(
@@ -69,7 +70,7 @@ export const UserManagement = ({ users, onRefresh }: UserManagementProps) => {
         description: `Added ₹${amount} to ${selectedUser.username}'s wallet`,
       });
 
-      setIsDialogOpen(false);
+      setIsAddDialogOpen(false);
       setAmount("");
       setSelectedUser(null);
       await onRefresh();
@@ -78,6 +79,60 @@ export const UserManagement = ({ users, onRefresh }: UserManagementProps) => {
       toast({
         title: "Error",
         description: "Failed to add money",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDecreaseMoney = async () => {
+    if (!selectedUser || !amount || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const decreaseAmount = parseFloat(amount);
+    const currentBalance = selectedUser.wallet_balance || 0;
+
+    if (decreaseAmount > currentBalance) {
+      toast({
+        title: "Insufficient Balance",
+        description: `Cannot decrease by ₹${amount}. User only has ₹${currentBalance.toFixed(2)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const newBalance = currentBalance - decreaseAmount;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wallet_balance: newBalance })
+        .eq("id", selectedUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Deducted ₹${amount} from ${selectedUser.username}'s wallet`,
+      });
+
+      setIsDecreaseDialogOpen(false);
+      setAmount("");
+      setSelectedUser(null);
+      await onRefresh();
+    } catch (error) {
+      console.error("Error decreasing money:", error);
+      toast({
+        title: "Error",
+        description: "Failed to decrease money",
         variant: "destructive",
       });
     } finally {
@@ -126,63 +181,126 @@ export const UserManagement = ({ users, onRefresh }: UserManagementProps) => {
                   </div>
                 </div>
 
-                <Dialog open={isDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) {
-                    setSelectedUser(null);
-                    setAmount("");
-                  }
-                }}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => setSelectedUser(user)}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add Money
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="glass border-border">
-                    <DialogHeader>
-                      <DialogTitle>Add Money to Wallet</DialogTitle>
-                      <DialogDescription>
-                        Add money to {user.username}'s wallet
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Current Balance</Label>
-                        <div className="text-2xl font-bold text-primary">
-                          ₹{user.wallet_balance?.toFixed(2) || "0.00"}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="amount">Amount to Add (₹)</Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          placeholder="Enter amount"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          min="0"
-                          step="0.01"
-                          className="glass border-border"
-                        />
-                      </div>
-
+                <div className="flex gap-2">
+                  <Dialog open={isAddDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                    setIsAddDialogOpen(open);
+                    if (!open) {
+                      setSelectedUser(null);
+                      setAmount("");
+                    }
+                  }}>
+                    <DialogTrigger asChild>
                       <Button
-                        onClick={handleAddMoney}
-                        disabled={isProcessing}
-                        className="w-full"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setSelectedUser(user)}
                       >
-                        {isProcessing ? "Processing..." : "Add Money"}
+                        <Plus className="w-4 h-4" />
+                        Add
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogTrigger>
+                    <DialogContent className="glass border-border">
+                      <DialogHeader>
+                        <DialogTitle>Add Money to Wallet</DialogTitle>
+                        <DialogDescription>
+                          Add money to {user.username}'s wallet
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Current Balance</Label>
+                          <div className="text-2xl font-bold text-primary">
+                            ₹{user.wallet_balance?.toFixed(2) || "0.00"}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="add-amount">Amount to Add (₹)</Label>
+                          <Input
+                            id="add-amount"
+                            type="number"
+                            placeholder="Enter amount"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            min="0"
+                            step="0.01"
+                            className="glass border-border"
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleAddMoney}
+                          disabled={isProcessing}
+                          className="w-full"
+                        >
+                          {isProcessing ? "Processing..." : "Add Money"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={isDecreaseDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                    setIsDecreaseDialogOpen(open);
+                    if (!open) {
+                      setSelectedUser(null);
+                      setAmount("");
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="gap-2"
+                        onClick={() => setSelectedUser(user)}
+                      >
+                        <Minus className="w-4 h-4" />
+                        Decrease
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="glass border-border">
+                      <DialogHeader>
+                        <DialogTitle>Decrease Money from Wallet</DialogTitle>
+                        <DialogDescription>
+                          Deduct money from {user.username}'s wallet
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Current Balance</Label>
+                          <div className="text-2xl font-bold text-primary">
+                            ₹{user.wallet_balance?.toFixed(2) || "0.00"}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="decrease-amount">Amount to Decrease (₹)</Label>
+                          <Input
+                            id="decrease-amount"
+                            type="number"
+                            placeholder="Enter amount"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            min="0"
+                            max={user.wallet_balance || 0}
+                            step="0.01"
+                            className="glass border-border"
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleDecreaseMoney}
+                          disabled={isProcessing}
+                          variant="destructive"
+                          className="w-full"
+                        >
+                          {isProcessing ? "Processing..." : "Decrease Money"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </div>
           </Card>
