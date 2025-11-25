@@ -55,12 +55,16 @@ const Tournaments = () => {
   }, [user]);
 
   const fetchTournaments = useCallback(async () => {
+    if (!userGameType) return;
+    
     try {
       const { data, error } = await supabase
         .from('tournaments')
-        .select('*')
+        .select('id, title, game_type, mode, entry_fee, prize_pool, per_kill_prize, total_slots, filled_slots, scheduled_at, status, image_url, room_id, room_password')
         .eq('status', 'upcoming')
-        .order('scheduled_at', { ascending: true });
+        .eq('game_type', userGameType)
+        .order('scheduled_at', { ascending: true })
+        .limit(20);
 
       if (error) throw error;
 
@@ -75,18 +79,19 @@ const Tournaments = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [userGameType, toast]);
 
   const fetchLiveTournaments = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !userGameType) return;
 
     try {
-      // Fetch all live tournaments regardless of participation
       const { data: tournamentsData, error: tournamentsError } = await supabase
         .from('tournaments')
-        .select('*')
+        .select('id, title, game_type, mode, entry_fee, prize_pool, per_kill_prize, total_slots, filled_slots, scheduled_at, status, image_url, room_id, room_password')
         .eq('status', 'ongoing')
-        .order('scheduled_at', { ascending: false });
+        .eq('game_type', userGameType)
+        .order('scheduled_at', { ascending: false })
+        .limit(10);
 
       if (tournamentsError) throw tournamentsError;
 
@@ -94,7 +99,7 @@ const Tournaments = () => {
     } catch (error) {
       console.error('Error fetching live tournaments:', error);
     }
-  }, [user?.id]);
+  }, [user?.id, userGameType]);
 
   const copyToClipboard = useCallback((text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -109,6 +114,11 @@ const Tournaments = () => {
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+    }
+  }, [user, fetchUserProfile]);
+
+  useEffect(() => {
+    if (userGameType) {
       fetchTournaments();
       fetchLiveTournaments();
       
@@ -133,12 +143,7 @@ const Tournaments = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, fetchUserProfile, fetchTournaments, fetchLiveTournaments]);
-
-  // Filter tournaments based on user's game type
-  const filteredTournaments = userGameType
-    ? tournaments.filter(t => t.game_type.toUpperCase() === userGameType.toUpperCase())
-    : tournaments;
+  }, [userGameType, fetchTournaments, fetchLiveTournaments]);
 
   const LiveTournamentCard = memo(({ tournament }: { tournament: Tournament }) => {
     const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
@@ -349,7 +354,7 @@ const Tournaments = () => {
                 <h2 className="text-lg font-bold mb-4">Upcoming Tournaments</h2>
               )}
               
-              {filteredTournaments.length === 0 ? (
+              {tournaments.length === 0 ? (
                 <Card className="glass border-border p-8">
                   <p className="text-center text-muted-foreground">
                     {userGameType 
@@ -359,7 +364,7 @@ const Tournaments = () => {
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {filteredTournaments.map((tournament) => (
+                  {tournaments.map((tournament) => (
                     <TournamentCard key={tournament.id} tournament={tournament} />
                   ))}
                 </div>

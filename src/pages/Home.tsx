@@ -47,11 +47,14 @@ const Home = () => {
   }, [user?.id]);
 
   const fetchTournaments = useCallback(async () => {
+    if (!userGameType) return;
+    
     try {
       const { data, error } = await supabase
         .from('tournaments')
-        .select('*')
+        .select('id, title, game_type, entry_fee, prize_pool, per_kill_prize, total_slots, filled_slots, scheduled_at, image_url')
         .eq('status', 'upcoming')
+        .eq('game_type', userGameType)
         .order('scheduled_at', { ascending: true })
         .limit(2);
 
@@ -61,19 +64,19 @@ const Home = () => {
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     }
-  }, []);
+  }, [userGameType]);
 
   useEffect(() => {
     if (user?.id) {
       fetchUserProfile();
+    }
+  }, [user?.id, fetchUserProfile]);
+
+  useEffect(() => {
+    if (userGameType) {
       fetchTournaments();
     }
-  }, [user?.id, fetchUserProfile, fetchTournaments]);
-
-  // Filter tournaments based on user's game type
-  const filteredTournaments = userGameType
-    ? tournaments.filter(t => t.game_type.toUpperCase() === userGameType.toUpperCase())
-    : tournaments;
+  }, [userGameType, fetchTournaments]);
 
   return (
     <div className="min-h-screen">
@@ -106,7 +109,7 @@ const Home = () => {
           </div>
 
           <div className="space-y-4">
-            {filteredTournaments.length === 0 ? (
+            {tournaments.length === 0 ? (
               <Card className="glass border-border p-8">
                 <p className="text-center text-muted-foreground">
                   {userGameType 
@@ -115,7 +118,7 @@ const Home = () => {
                 </p>
               </Card>
             ) : (
-              filteredTournaments.map((tournament) => {
+              tournaments.map((tournament) => {
                 const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
                 
                 return (
