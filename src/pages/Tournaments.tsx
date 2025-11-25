@@ -55,16 +55,20 @@ const Tournaments = () => {
   }, [user]);
 
   const fetchTournaments = useCallback(async () => {
-    if (!userGameType) return;
-    
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tournaments')
         .select('id, title, game_type, mode, entry_fee, prize_pool, per_kill_prize, total_slots, filled_slots, scheduled_at, status, image_url, room_id, room_password')
         .eq('status', 'upcoming')
-        .eq('game_type', userGameType)
         .order('scheduled_at', { ascending: true })
         .limit(20);
+
+      // Only filter by game type if user has one set
+      if (userGameType) {
+        query = query.eq('game_type', userGameType);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -82,16 +86,22 @@ const Tournaments = () => {
   }, [userGameType, toast]);
 
   const fetchLiveTournaments = useCallback(async () => {
-    if (!user?.id || !userGameType) return;
+    if (!user?.id) return;
 
     try {
-      const { data: tournamentsData, error: tournamentsError } = await supabase
+      let query = supabase
         .from('tournaments')
         .select('id, title, game_type, mode, entry_fee, prize_pool, per_kill_prize, total_slots, filled_slots, scheduled_at, status, image_url, room_id, room_password')
         .eq('status', 'ongoing')
-        .eq('game_type', userGameType)
         .order('scheduled_at', { ascending: false })
         .limit(10);
+
+      // Only filter by game type if user has one set
+      if (userGameType) {
+        query = query.eq('game_type', userGameType);
+      }
+
+      const { data: tournamentsData, error: tournamentsError } = await query;
 
       if (tournamentsError) throw tournamentsError;
 
@@ -114,11 +124,6 @@ const Tournaments = () => {
   useEffect(() => {
     if (user) {
       fetchUserProfile();
-    }
-  }, [user, fetchUserProfile]);
-
-  useEffect(() => {
-    if (userGameType) {
       fetchTournaments();
       fetchLiveTournaments();
       
@@ -143,7 +148,7 @@ const Tournaments = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [userGameType, fetchTournaments, fetchLiveTournaments]);
+  }, [user, fetchUserProfile, fetchTournaments, fetchLiveTournaments]);
 
   const LiveTournamentCard = memo(({ tournament }: { tournament: Tournament }) => {
     const gameImage = tournament.game_type?.toUpperCase() === 'FF' ? ffTournament : bgmiTournament;
