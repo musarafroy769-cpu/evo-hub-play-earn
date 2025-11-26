@@ -176,13 +176,19 @@ const Auth = () => {
                     <Input
                       id="username"
                       type="text"
-                      placeholder="ProGamer123"
+                      placeholder="Enter your game ID name"
                       className="pl-10 glass border-border"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                        setUsername(value);
+                      }}
                       required
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enter your game ID name (letters only, no numbers or symbols)
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -243,6 +249,11 @@ const Auth = () => {
                       onChange={(e) => setGameUid(e.target.value)}
                       required
                     />
+                  </div>
+                  <div className="p-2 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-xs text-destructive font-medium">
+                      ⚠️ Enter the correct UID of your game. If you provide wrong UID, your money will NOT be credited!
+                    </p>
                   </div>
                 </div>
 
