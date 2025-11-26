@@ -13,9 +13,26 @@ export const useAuth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth event:', event);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Handle email verification success
+        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+          toast({
+            title: "Email Verified!",
+            description: "Your account has been verified successfully. Welcome to Evo Hub!",
+          });
+        }
+
+        // Handle password recovery
+        if (event === 'PASSWORD_RECOVERY') {
+          toast({
+            title: "Password Recovery",
+            description: "Please set your new password.",
+          });
+        }
       }
     );
 
@@ -27,7 +44,7 @@ export const useAuth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [toast]);
 
   const signUp = async (
     email: string, 
