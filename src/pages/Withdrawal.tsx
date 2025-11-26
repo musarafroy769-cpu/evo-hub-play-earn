@@ -37,7 +37,7 @@ const Withdrawal = () => {
   const [depositRequests, setDepositRequests] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   
-  const MIN_WITHDRAWAL = 5;
+  const MIN_WITHDRAWAL = 15;
 
   useEffect(() => {
     if (user) {
@@ -365,6 +365,11 @@ const Withdrawal = () => {
                   <li>After payment, enter the transaction details below</li>
                   <li>Admin will verify and add money to your wallet</li>
                 </ol>
+                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-sm text-yellow-500 font-medium">
+                    ⚠️ Your money will be credited within 24 hours after verification
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-col items-center gap-4 mb-6 p-6 bg-white rounded-lg">
@@ -483,10 +488,15 @@ const Withdrawal = () => {
             <Card className="glass border-border p-6">
               <h2 className="text-xl font-bold mb-4">Request Withdrawal</h2>
               
-              <div className="bg-muted/30 p-4 rounded-lg mb-6">
+              <div className="bg-muted/30 p-4 rounded-lg mb-6 space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Minimum withdrawal: <span className="font-bold text-primary">₹{MIN_WITHDRAWAL}</span>
                 </p>
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-sm text-yellow-500 font-medium">
+                    ⚠️ Withdrawal will take up to 24 hours to credit to your account
+                  </p>
+                </div>
               </div>
 
               <form onSubmit={handleWithdrawal} className="space-y-4">
