@@ -179,15 +179,12 @@ const Auth = () => {
                       placeholder="Enter your game ID name"
                       className="pl-10 glass border-border"
                       value={username}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                        setUsername(value);
-                      }}
+                      onChange={(e) => setUsername(e.target.value)}
                       required
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Enter your game ID name (letters only, no numbers or symbols)
+                    Enter your game ID name
                   </p>
                 </div>
 
