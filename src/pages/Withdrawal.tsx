@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import paymentQr from "@/assets/payment-qr.jpg";
 
 const Withdrawal = () => {
   const navigate = useNavigate();
@@ -373,11 +374,12 @@ const Withdrawal = () => {
               </div>
 
               <div className="flex flex-col items-center gap-4 mb-6 p-6 bg-white rounded-lg">
-                <div className="w-48 h-48 bg-muted flex items-center justify-center rounded-lg">
-                  <QrCode className="w-32 h-32 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">Scan QR Code to Pay</p>
-                <p className="font-mono font-bold text-foreground">UPI ID: evohub@upi</p>
+                <img 
+                  src={paymentQr}
+                  alt="Payment QR Code"
+                  className="w-64 h-64 object-contain rounded-lg"
+                />
+                <p className="text-sm text-muted-foreground font-medium">Scan QR Code to Pay</p>
               </div>
 
               <form onSubmit={handleDeposit} className="space-y-4">
