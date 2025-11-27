@@ -6,16 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Trophy, Mail, Lock, User, Gamepad2, CheckCircle2 } from "lucide-react";
+import { Trophy, Mail, Lock, User, Gamepad2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
@@ -27,7 +19,6 @@ const Auth = () => {
   const [username, setUsername] = useState("");
   const [gameUid, setGameUid] = useState("");
   const [gameType, setGameType] = useState<string>("");
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   
   const { user, signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -51,52 +42,13 @@ const Auth = () => {
       return;
     }
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, username, undefined, gameUid, gameType);
+    await signUp(signupEmail, signupPassword, username, undefined, gameUid, gameType);
     setIsLoading(false);
-    
-    if (!result.error) {
-      setShowVerifyDialog(true);
-    }
   };
 
 
   return (
-    <>
-      <AlertDialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
-        <AlertDialogContent className="glass border-primary/30">
-          <AlertDialogHeader>
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <CheckCircle2 className="w-10 h-10 text-primary" />
-              </div>
-            </div>
-            <AlertDialogTitle className="text-center text-2xl">
-              Verify Your Email
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-center space-y-2">
-              <p>
-                We've sent a verification link to <strong>{signupEmail}</strong>
-              </p>
-              <p className="text-muted-foreground">
-                Please check your email and click the verification link to activate your account.
-              </p>
-              <p className="text-sm text-muted-foreground mt-4">
-                Didn't receive the email? Check your spam folder or try signing up again.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button 
-              onClick={() => setShowVerifyDialog(false)}
-              className="w-full bg-gradient-gaming"
-            >
-              Got it!
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
@@ -270,7 +222,6 @@ const Auth = () => {
           </p>
         </div>
       </div>
-    </>
   );
 };
 
