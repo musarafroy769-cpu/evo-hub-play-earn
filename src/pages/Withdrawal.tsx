@@ -25,7 +25,6 @@ const Withdrawal = () => {
   // Withdrawal states
   const [upiId, setUpiId] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawPhone, setWithdrawPhone] = useState("");
   
   // Deposit states
   const [depositAmount, setDepositAmount] = useState("");
@@ -126,15 +125,6 @@ const Withdrawal = () => {
       return;
     }
 
-    if (!withdrawPhone.trim()) {
-      toast({
-        title: "Phone Number Required",
-        description: "Please enter your phone number",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0) {
       toast({
@@ -171,7 +161,6 @@ const Withdrawal = () => {
         user_id: user.id,
         amount,
         upi_id: upiId.trim(),
-        phone_number: withdrawPhone.trim(),
         status: 'pending',
       });
 
@@ -190,7 +179,6 @@ const Withdrawal = () => {
       });
       setWithdrawAmount("");
       setUpiId("");
-      setWithdrawPhone("");
       fetchWithdrawalRequests();
     }
   };
@@ -541,19 +529,7 @@ const Withdrawal = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="withdraw-phone">Phone Number *</Label>
-                  <Input
-                    id="withdraw-phone"
-                    type="tel"
-                    placeholder="Enter phone number"
-                    value={withdrawPhone}
-                    onChange={(e) => setWithdrawPhone(e.target.value)}
-                    className="glass border-border"
-                  />
-                </div>
-
-                <Button 
+                <Button
                   type="submit" 
                   className="w-full bg-gradient-gaming hover:shadow-neon-primary"
                   disabled={isLoading}
