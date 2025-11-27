@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Trophy, Mail, Lock, User, Phone, Gamepad2, CheckCircle2 } from "lucide-react";
+import { Trophy, Mail, Lock, User, Gamepad2, CheckCircle2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -25,7 +25,6 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [username, setUsername] = useState("");
-  const [phone, setPhone] = useState("");
   const [gameUid, setGameUid] = useState("");
   const [gameType, setGameType] = useState<string>("");
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
@@ -52,7 +51,7 @@ const Auth = () => {
       return;
     }
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, username, phone, gameUid, gameType);
+    const result = await signUp(signupEmail, signupPassword, username, undefined, gameUid, gameType);
     setIsLoading(false);
     
     if (!result.error) {
@@ -199,22 +198,6 @@ const Auth = () => {
                       className="pl-10 glass border-border"
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+91 98765 43210"
-                      className="pl-10 glass border-border"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
                       required
                     />
                   </div>
