@@ -18,14 +18,6 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Handle email verification success
-        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-          toast({
-            title: "Email Verified!",
-            description: "Your account has been verified successfully. Welcome to Evo Hub!",
-          });
-        }
-
         // Handle password recovery
         if (event === 'PASSWORD_RECOVERY') {
           toast({
