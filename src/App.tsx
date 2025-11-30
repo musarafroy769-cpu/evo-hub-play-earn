@@ -20,6 +20,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Withdrawal = lazy(() => import("./pages/Withdrawal"));
 const Payment = lazy(() => import("./pages/Payment"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Moderator = lazy(() => import("./pages/Moderator"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/withdrawal" element={<ProtectedRoute><Layout><Withdrawal /></Layout></ProtectedRoute>} />
             <Route path="/payment" element={<ProtectedRoute><Layout><Payment /></Layout></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/moderator" element={<ProtectedRoute><Moderator /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Layout><Leaderboard /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
