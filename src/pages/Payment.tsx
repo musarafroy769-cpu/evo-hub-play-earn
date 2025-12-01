@@ -8,6 +8,7 @@ import { ArrowLeft, CreditCard, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { BannerAd } from "@/components/BannerAd";
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -120,7 +121,10 @@ const Payment = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Banner Ad */}
+        <BannerAd />
+        
         <Card className="glass border-border p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-primary/20 rounded-lg">

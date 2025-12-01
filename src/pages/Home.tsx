@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import heroBanner from "@/assets/hero-banner.jpg";
 import ffTournament from "@/assets/ff-tournament.jpg";
 import bgmiTournament from "@/assets/bgmi-tournament.jpg";
+import { BannerAd } from "@/components/BannerAd";
 interface Tournament {
   id: string;
   title: string;
@@ -84,6 +85,9 @@ const Home = () => {
       </section>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        {/* Banner Ad */}
+        <BannerAd />
+        
         {/* Featured Tournaments */}
         <div>
           <div className="flex items-center justify-between mb-4">
