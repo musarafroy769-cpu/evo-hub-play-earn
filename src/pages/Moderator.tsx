@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 export default function Moderator() {
@@ -19,7 +19,7 @@ export default function Moderator() {
     };
 
     checkRole();
-  }, []);
+  }, [navigate]);
 
   if (loading) return <p>Checking permissions...</p>;
 
