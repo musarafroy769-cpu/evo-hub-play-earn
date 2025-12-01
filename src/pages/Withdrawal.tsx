@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import paymentQr from "@/assets/payment-qr.jpg";
+import { BannerAd } from "@/components/BannerAd";
 
 const Withdrawal = () => {
   const navigate = useNavigate();
@@ -311,6 +312,9 @@ const Withdrawal = () => {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Banner Ad */}
+        <BannerAd className="mb-4" />
+        
         {/* Wallet Balance */}
         <Card className="glass border-border p-6">
           <div className="flex items-center justify-between">
