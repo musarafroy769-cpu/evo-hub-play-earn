@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import ffTournament from "@/assets/ff-tournament.jpg";
 import bgmiTournament from "@/assets/bgmi-tournament.jpg";
-import { BannerAd } from "@/components/BannerAd";
 
 interface Tournament {
   id: string;
@@ -333,9 +332,6 @@ const Tournaments = () => {
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Banner Ad */}
-        <BannerAd />
-        
         {isLoading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
