@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 declare global {
   interface Window {
@@ -7,16 +7,31 @@ declare global {
 }
 
 const AdBanner = () => {
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-      console.error("AdSense error:", e);
-    }
+    // Delay ad loading to not block initial render
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (isVisible) {
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (e) {
+        console.error("AdSense error:", e);
+      }
+    }
+  }, [isVisible]);
+
+  if (!isVisible) return <div className="w-full h-[90px]" />;
+
   return (
-    <div className="w-full">
+    <div className="w-full min-h-[90px]">
       <ins
         className="adsbygoogle"
         style={{ display: "block" }}
