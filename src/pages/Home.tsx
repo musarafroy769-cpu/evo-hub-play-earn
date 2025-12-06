@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Clock, ChevronRight } from "lucide-react";
+import { Users, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import heroBanner from "@/assets/hero-banner.jpg";
 import ffTournament from "@/assets/ff-tournament.jpg";
 import bgmiTournament from "@/assets/bgmi-tournament.jpg";
+import AdBanner from "@/components/AdBanner";
 interface Tournament {
   id: string;
   title: string;
@@ -69,6 +70,11 @@ const Home = () => {
     }
   }, [user?.id, fetchUserProfile, fetchTournaments]);
   return <div className="min-h-screen">
+      {/* AdSense Banner */}
+      <div className="max-w-lg mx-auto px-4 pt-4">
+        <AdBanner />
+      </div>
+
       {/* Hero Section */}
       <section className="relative h-[300px] overflow-hidden">
         <img src={heroBanner} alt="Hero Banner" className="absolute inset-0 w-full h-full object-cover" />
