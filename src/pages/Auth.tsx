@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Trophy, Mail, Lock, User, Gamepad2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,10 +90,9 @@ const Auth = () => {
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground z-10" />
+                    <PasswordInput
                       id="password"
-                      type="password"
                       placeholder="••••••••"
                       className="pl-10 glass border-border"
                       value={loginPassword}
@@ -192,10 +191,9 @@ const Auth = () => {
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground z-10" />
+                    <PasswordInput
                       id="signup-password"
-                      type="password"
                       placeholder="••••••••"
                       className="pl-10 glass border-border"
                       value={signupPassword}

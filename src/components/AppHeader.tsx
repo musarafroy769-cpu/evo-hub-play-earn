@@ -67,21 +67,21 @@ export const AppHeader = () => {
     };
   }, [user?.id]);
   return <header className="sticky top-0 z-40 glass border-b border-border">
-      <div className="max-w-lg mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-gaming bg-clip-text text-transparent">
+      <div className="w-full px-3 sm:max-w-lg sm:mx-auto sm:px-4 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-shrink">
+            <h1 className="text-lg sm:text-2xl font-bold bg-gradient-gaming bg-clip-text text-transparent truncate">
               MxA Evo Hub
             </h1>
-            <p className="text-xs text-muted-foreground">Play • Win • Earn</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Play • Win • Earn</p>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {/* Notification Icon */}
             <Link to="/notifications">
-              <div className="relative glass p-2 rounded-full border border-border hover:border-primary hover:bg-primary/10 transition-all cursor-pointer">
-                <Bell className="w-5 h-5 text-foreground" />
-                {unreadCount > 0 && <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-xs bg-red-500 text-white border-0">
+              <div className="relative glass p-1.5 sm:p-2 rounded-full border border-border hover:border-primary hover:bg-primary/10 transition-all cursor-pointer touch-manipulation">
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+                {unreadCount > 0 && <Badge className="absolute -top-1 -right-1 h-4 sm:h-5 min-w-4 sm:min-w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs bg-red-500 text-white border-0">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </Badge>}
               </div>
@@ -89,10 +89,10 @@ export const AppHeader = () => {
 
             {/* Wallet */}
             <Link to="/withdrawal?tab=deposit">
-              <div className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-primary/30 hover:border-primary hover:bg-primary/10 transition-all cursor-pointer">
-                <Wallet className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">₹{walletBalance.toFixed(2)}</span>
-                <Plus className="w-3 h-3 text-primary" />
+              <div className="flex items-center gap-1 sm:gap-2 glass px-2 sm:px-4 py-1.5 sm:py-2 rounded-full border border-primary/30 hover:border-primary hover:bg-primary/10 transition-all cursor-pointer touch-manipulation">
+                <Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                <span className="text-xs sm:text-sm font-semibold">₹{walletBalance.toFixed(2)}</span>
+                <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary" />
               </div>
             </Link>
           </div>

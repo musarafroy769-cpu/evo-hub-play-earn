@@ -110,4 +110,14 @@ All colors MUST be HSL.
   .gradient-card {
     background: var(--gradient-card);
   }
+
+  /* Mobile-first utilities */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
